@@ -6,11 +6,12 @@ execute:
   echo: true
 
 book:
-  title: "YOUR PROJECT TITLE"
+  title: "Renewable Energy"
   author:
-    - AUTHOR1 (UNI1)
-    - AUTHOR2 (UNI2)
-  repo-url: https://github.com/YOUR_GITHUB_ACCOUNT/REPO_NAME
+    - Sharon Tsai (ct3263)
+    - Renee Hsiao (jh4947) 
+    - Jose Murguia Fuentes (jm5890)
+  repo-url: https://github.com/JoseMF95/renewable_energy
   date: today
   page-footer:
     right: |
