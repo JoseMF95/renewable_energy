@@ -1,5 +1,19 @@
 # Data
 
 ## Description
+1. International Renewable Energy Agency (IRENA)
+Link: https://www.irena.org/Data/Downloads/IRENASTAT (link to IRENA data query tool)
+
+The data is collected by the international renewable energy agency IRENA from its member countries. IRENA is an intergovernmental organization that exists to support country's with their transition to using sustainable energy. There are currently 169 member countries and the EU. IRENA is able to collect their data through their questionnaire for these member countries. In addition, desk research is also conducted to complement the questionnaire to provide a comprehensive report. IRENA updates its database annually. 
+
+There is a data query on the IRENA website for us to look at data related to heat generation or electricity generation in general. There is also data that looks at sustainable energy as a percentage of overall energy generation of all the member countries. We are able to select these data through a data query on the IRENA website. The data query allows us to download data directly in excel or csv format. To import the data, we will download the data as a csv file and load it in to R with read.csv() function. The data is in wide format that is sorted by countries, then by different groups of indicators (% wind generation, etc.), and finally by yearly data (this is consistent across the data we found using the data query). It has data starting from the 2000s to 2023 (previous year).
+
+2. Global Carbon Project (GCP)
+Link: https://www.icos-cp.eu/science-and-impact/global-carbon-budget/2022
+
+The data is collected by the Global Carbon Project. The GCP is an international research project that aims to understand patterns and interactions connected to Global Carbon emissions. They are able to collect their data by working with different institutions and consolidating their observations. The data should be updated yearly to the previous year we are currently on eg. (2023 as we are in 2024 right now). However, this data is not available yet, so it might be a potential problem when we perform our data analysis. In addition, there are also a few countries that doesn't have any data which we will have to deal with.
+
+We are able to download data directly on the global carbon budget website. The data contains information on global carbon emissions data as well as emissions of fossil fuels by country. The website allows us to download the information as an excel sheet. We can use the read.xlsx() function to read in and process these excel files into R. The data is sorted by countries/years with data information situated on top of the actual data. There are also multiple sheets within an excel file. 
+
 
 ## Missing value analysis
