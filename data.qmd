@@ -13,10 +13,41 @@ Link: https://www.icos-cp.eu/science-and-impact/global-carbon-budget/2022
 
 The data is collected by the Global Carbon Project. The GCP is an international research project that aims to understand patterns and interactions connected to Global Carbon emissions. They are able to collect their data by working with different institutions and consolidating their observations. The data should be updated yearly to the previous year we are currently on eg. (2023 as we are in 2024 right now). However, this data is not available yet, so it might be a potential problem when we perform our data analysis. In addition, there are also a few countries that doesn't have any data which we will have to deal with.
 
-We are able to download data directly on the global carbon budget website. The data contains information on global carbon emissions data as well as emissions of fossil fuels by country. The website allows us to download the information as an excel sheet. We can use the read.xlsx() function to read in and process these excel files into R. The data is sorted by countries/years with data information situated on top of the actual data. There are also multiple sheets within an excel file. 
+We are able to download data directly on the global carbon budget website. The data contains information on global carbon emissions data as well as emissions of fossil fuels globally. The website allows us to download the information as an excel sheet. We can use the read.xlsx() function to read in and process these excel files into R. The data is sorted by years with data information situated on top of the actual data. There is also territorial emissions data by country. There are also multiple sheets within an excel file we decided to use only one in each excel file as it is most relevant to our analysis. 
 
 
 ## Missing value analysis
+
+### Global Carbon Project Data 
+```{r}
+library(readxl)
+library(redav)
+```
+
+```{r}
+df_globalcarbon <- read_excel("Global_Carbon_Budget_2022v1.0.xlsx",
+                              sheet = 2,
+                              skip = 20)
+```
+```{r}
+plot_missing(df_globalcarbon, percent = FALSE)
+```
+
+The Global Carbon Data denotes the overall fossil fuel emissions globally. There are no missing values as shown colSums of NA values (0 missing values in each of the columns).
+
+```{r}
+df_territorialemissions <- read_excel("National_Fossil_Carbon_Emissions_2022v1.0.xlsx",
+                              sheet = 2,
+                              skip = 11)
+head(df_territorialemissions)
+```
+
+
+```{r}
+plot_missing(df_territorialemissions, percent = FALSE)
+```
+There are quite a lot of missing values. As these emission data is by year, we tried to filter by year to see how much data is left. The number of years that are missing in data is different for each country. 
+
 
 ### Electricity statistics (MW/GWh) by Region, Technology, Data Type and Year
 
