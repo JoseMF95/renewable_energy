@@ -18,4 +18,681 @@ We are able to download data directly on the global carbon budget website. The d
 
 ## Missing value analysis
 
- Missing value analysis
+### Electricity statistics (MW/GWh) by Region, Technology, Data Type and Year
+
+```{r}
+#| message: false
+# load libraries
+library(tidyverse)
+library(data.table)
+
+# read raw file
+df_electstats_region <- read_csv(
+  "./raw_data/irena_electstats_region.csv"
+)
+
+attr(df_electstats_region, 'spec') <- NULL
+
+# review data structure
+df_electstats_region |> 
+  str()
+
+# assess data sample
+df_electstats_region |>
+  arrange(`Electricity statistics`) |> 
+  head() |> 
+  data.table()
+```
+
+We observe that Electricity statistics column is saved as character. In particular, some rows have value equal "-", we label them as NA and convert the column to numeric.
+
+```{r}
+# convert electricity statistics to numeric
+df_electstats_region <- df_electstats_region |> 
+  mutate(
+    across(
+      starts_with('Elec'),
+      ~ifelse(.x=='-',NA,.x)
+    )
+  ) |> 
+  mutate(
+    across(
+      starts_with('Elec'),
+      as.numeric
+    )
+  ) 
+```
+
+Let's review the proportion of NAs by column:
+
+```{r}
+# review proportion of NAs per column: global
+df_electstats_region|> 
+  summarise(
+    across(
+      everything(),
+      ~sum(ifelse(is.na(.x),1,0))
+    ),
+    n=n()
+  ) |> 
+  pivot_longer(
+    cols=-n,
+    names_to = 'variable',
+    values_to = 'n_na'
+  ) |> 
+  mutate(prop_na=n_na/n) |> 
+  data.table()
+```
+Only Electricity statistics column presents NAs, less than 11% of the total observations.
+
+Let's review the pattern by Year
+
+```{r}
+# review proportion of NAs by Year
+df_electstats_region_year <- df_electstats_region |> 
+  group_by(Year) |> 
+  summarise(
+    n = n(),
+    n_country = n_distinct(`Region`),
+    across(
+      starts_with('Elect'),
+      ~sum(ifelse(is.na(.x),1,0))
+    )
+  ) |>
+  rename(n_na=starts_with('Elect')) |> 
+  mutate(prop_na=n_na/n)
+
+# graph share of NAs in Electric Statistics per Year
+df_electstats_region_year |> 
+  ggplot(aes(x=Year,y=prop_na)) +
+  geom_line() +
+  theme_bw() +
+  ggtitle('% NAs in Electricity Statistics per Year') +
+  scale_y_continuous('% NAs',labels=scales::percent_format())
+```
+
+In general, we observe a downtrend across years but year 2023 where there's a big jump.
+
+Let's assess whether % of NAs depend on which Technology is measured
+
+```{r}
+#| fig-height: 7
+# review proportion of NAs by Year and Technology
+df_electstats_region_year_tec <- df_electstats_region |> 
+  group_by(Year,Technology) |> 
+  summarise(
+    n = n(),
+    across(
+      starts_with('Elect'),
+      ~sum(ifelse(is.na(.x),1,0))
+    )
+  ) |>
+  rename(n_na=starts_with('Elect')) |> 
+  mutate(prop_na=n_na/n)
+
+#  % share of NAs per by Year and Technology
+df_electstats_region_year_tec |> 
+  mutate(Year=factor(Year)) |> 
+  ggplot(aes(x=Technology,y=Year,fill=prop_na)) +
+  geom_tile() +
+  scale_fill_gradient2(
+    "% of NAs",
+    low='green',
+    mid='white',
+    high='orange',
+    midpoint = 0.5,
+    labels=scales::percent_format()
+  ) +
+  theme_bw() +
+  ggtitle('% NAs in Electricity Statistics\nper Year and Technology') +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+```
+
+Most Technologies have 0% of NAs.Geothermal, Other non-renewable and Pumped Store have around 15% of NAs. Marine and Nuclear has the most share of NAs with over 25%.
+
+Let's analyze regions, could some regions more prone to missing values?
+
+```{r}
+#| fig-width: 7
+# review proportion of NAs by Year and Region
+df_electstats_region_year_r <- df_electstats_region |> 
+  group_by(Year,Region) |> 
+  summarise(
+    n = n(),
+    across(
+      starts_with('Elect'),
+      ~sum(ifelse(is.na(.x),1,0))
+    )
+  ) |>
+  rename(n_na=starts_with('Elect')) |> 
+  mutate(prop_na=n_na/n) |> 
+  mutate(Region = case_when(
+    str_detect(Region,'Central') ~ 'Central America',
+    TRUE ~ Region
+  ))
+
+# graph % NA per Year and Country
+df_electstats_region_year_r |> 
+  ggplot(aes(
+    x=Year,
+    y=prop_na,
+    col=Region))+
+  geom_line(position = position_jitter()) +
+  theme_bw() +
+  ggtitle('% NAs in Electricity Statistics per Year and Region') +
+  scale_y_continuous('% NAs',labels=scales::percent_format()) +
+  scale_color_discrete(breaks=~.x[!is.na(.x)]) +
+  theme(legend.position="bottom")
+```
+In the first years, Middle East is the region with most NAs (<40%). Around 2014 we see an improvement for this region. We add jitter to observe the pattern for regions with least share of missing values. In particular Asia, Europe, Eurasia and North America have small shares of NAs (<5%).
+
+Again, we assess some type of issue with data on 2023 due to an increase of shares of missing values.
+
+### Electricity statistics (MW/GWh) by Country/area, Technology, Data Type, Grid connection and Year
+
+```{r}
+#| message: false
+# read data
+df_electstats_country <- read_csv(
+  "./raw_data/irena_electstats_country.csv"
+)
+
+attr(df_electstats_country, 'spec') <- NULL
+
+# review data structure
+df_electstats_country |> 
+  str()
+
+# assess data sample
+df_electstats_country |>
+  arrange(`Electricity statistics (MW/GWh)`) |> 
+  head() |> 
+  data.table()
+```
+Again Electricity statistics column is saved as character. In particular, some rows have value equal "-", we label them as NA and convert the column to numeric.
+
+```{r}
+# convert electricity statistics to numeric
+df_electstats_country <- df_electstats_country |> 
+  mutate(
+    across(
+      starts_with('Elec'),
+      ~ifelse(.x=='-',NA,.x)
+    )
+  ) |> 
+  mutate(
+    across(
+      starts_with('Elec'),
+      as.numeric
+      )
+  )
+```
+
+Let's review the proportion of NAs by column:
+
+```{r}
+# review proportion of NAs per column: global
+df_electstats_country |> 
+  summarise(
+    across(
+      everything(),
+      ~sum(ifelse(is.na(.x),1,0))
+    ),
+    n=n()
+  ) |> 
+  pivot_longer(
+    cols=-n,
+    names_to = 'variable',
+    values_to = 'n_na'
+  ) |> 
+  mutate(prop_na=n_na/n) |> 
+  data.table()
+```
+Only Electricity statistics column presents NAs, around 75% of the total observations.
+
+Let's review the pattern by Year
+
+```{r}
+# review proportion of NAs by Year
+df_electstats_country_year <- df_electstats_country |> 
+  group_by(Year) |> 
+  summarise(
+    n = n(),
+    n_country = n_distinct(`Country/area`),
+    across(
+      starts_with('Elect'),
+      ~sum(ifelse(is.na(.x),1,0))
+    )
+  ) |>
+  rename(n_na=starts_with('Elect')) |> 
+  mutate(prop_na=n_na/n)
+
+# graph share of NAs in Electric Statistics per Year
+df_electstats_country_year |> 
+  ggplot(aes(x=Year,y=prop_na)) +
+  geom_line() +
+  theme_bw() +
+  ggtitle('% NAs in Electricity Statistics per Year') +
+  scale_y_continuous('% NAs',labels=scales::percent_format())
+
+```
+
+The share of missing values present a downtrend but on year 2023 there's a sudden jump up to 85%.
+
+Let's assess whether % of NAs depend on which Technology is measured
+
+```{r}
+#| fig-height: 7
+
+# review proportion of NAs per by Year and Technology
+df_electstats_country_year_tec <- df_electstats_country |> 
+  group_by(Year,Technology) |> 
+  summarise(
+    n = n(),
+    across(
+      starts_with('Elect'),
+      ~sum(ifelse(is.na(.x),1,0))
+    )
+  ) |>
+  rename(n_na=starts_with('Elect')) |> 
+  mutate(prop_na=n_na/n)
+
+#  % share of NAs per by Year and Technology
+df_electstats_country_year_tec |> 
+  mutate(Year=factor(Year)) |> 
+  ggplot(aes(x=Technology,y=Year,fill=prop_na)) +
+  geom_tile() +
+  scale_fill_gradient2(
+    "% of NAs",
+    low='green',
+    mid='white',
+    high='orange',
+    midpoint = 0.5,
+    labels=scales::percent_format()
+  ) +
+  theme_bw() +
+  ggtitle(paste0(
+  '% NAs in Electricity Statistics',
+  ' per Year and Technology')
+  ) +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+```
+
+For most Technologies we have big shares of missing values (>50%). For Solar energy we the share decreases across time. Just for Oil and aggregated values such as Total Non-Renewable and Total Renewable the share of NAs is below 50% consistently.
+
+Let's analyze for grid connection
+
+```{r}
+#| fig-height: 7
+
+# review proportion of NAs per by Year and Grid connection
+df_electstats_country_year_grid <- df_electstats_country |> 
+  group_by(Year,`Grid connection`) |> 
+  summarise(
+    n = n(),
+    across(
+      starts_with('Elect'),
+      ~sum(ifelse(is.na(.x),1,0))
+    )
+  ) |>
+  rename(n_na=starts_with('Elect')) |> 
+  mutate(prop_na=n_na/n) 
+
+#  % share of NAs per by Year and Grid connection
+df_electstats_country_year_grid |> 
+  mutate(Year=factor(Year)) |> 
+  ggplot(aes(x=`Grid connection`,y=Year,fill=prop_na)) +
+  geom_tile() +
+  scale_fill_gradient2(
+    "% of NAs",
+    low='green',
+    mid='white',
+    high='orange',
+    midpoint = 0.5,
+    labels=scales::percent_format()
+  ) +
+  theme_bw() +
+  ggtitle(paste0(
+    '% NAs in Electricity Statistics',
+    ' per Year and Grid Connection')
+    ) +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+```
+
+Regardless of the grid connection the share of missing value is high (>60%)
+
+For which countries do we have most data?
+
+```{r}
+#| fig-height: 7
+
+# review proportion of NAs per by Year and Country
+df_electstats_country_year_country <- df_electstats_country |> 
+  group_by(Year,`Country/area`) |> 
+  summarise(
+    n = n(),
+    across(
+      starts_with('Elect'),
+      ~sum(ifelse(is.na(.x),1,0))
+    )
+  ) |>
+  rename(n_na=starts_with('Elect')) |> 
+  mutate(prop_na=n_na/n) |> 
+  mutate(Country=ifelse(prop_na<0.5,`Country/area`,NA)) |> 
+  mutate(Country = str_remove_all(Country,'\\(the\\)'))  |> 
+  mutate(Country = case_when(
+    str_detect(Country,'United Kingdom') ~ 'UK',
+    str_detect(Country,'United States') ~ 'US',
+    str_detect(Country,'Korea') ~ 'South Korea',
+    str_detect(Country,'Viet Nam') ~ 'Vietnam',
+    TRUE ~ Country
+  ))
+
+# graph % NA per Year and Country
+# color countries with %NAs < 50%
+df_electstats_country_year_country |> 
+  ggplot(aes(
+    x=Year,
+    y=prop_na,
+    group=`Country/area`,
+    col=Country))+
+  geom_line(position=position_jitter()) +
+  theme_bw() +
+  ggtitle('% NAs in Electricity Statistics per Year and Country') +
+  scale_y_continuous('% NAs',labels=scales::percent_format()) +
+  scale_color_discrete(breaks=~.x[!is.na(.x)]) +
+  theme(legend.position="bottom")
+```
+
+Highlighting countries which share of NAs is less than 50% only 12 met this criteria out of 200+ countries. 
+
+### Renewable energy share of electricity capacity and generation (%) by Region/country/area, Indicator and Year
+
+```{r}
+#| message: false
+# read data
+df_share <- read_csv(
+  "./raw_data/irena_share.csv"
+)
+
+attr(df_share, 'spec') <- NULL 
+
+# review data structure
+df_share %>% 
+  str()
+
+# assess data sample
+df_share |>
+  arrange(`Renewable energy share of electricity capacity and generation (%)`) |> 
+  head() |> 
+  data.table()
+```
+
+This data requires the same transformation as with previous sets. Only difference is that it includes region and country/area. Let's split data an analyze separately. Let's start examining by region
+
+```{r}
+# convert renewable column to numeric
+# divide pct by 100
+df_share <- df_share|> 
+  mutate(
+    across(
+      starts_with('Renewable'),
+      ~ifelse(.x=='-',NA,.x)
+    )
+  ) |> 
+  mutate(
+    across(
+      starts_with('Renewable'),
+      as.numeric
+    )
+  ) |> 
+  mutate(
+    across(
+      starts_with('Renewable'),
+      ~.x/100
+    )
+  )
+
+# has countries and regions together split 
+c_names <- df_share$`Region/country/area` |> 
+  unique()
+
+# by region
+df_share_region <- df_share |> 
+  rename(Region=`Region/country/area`) |> 
+  filter(Region %in% c_names[1:10])
+
+# review proportion of NAs per column: global
+df_share_region |> 
+  summarise(
+    across(
+      everything(),
+      ~sum(ifelse(is.na(.x),1,0))
+    ),
+    n=n()
+  ) |> 
+  pivot_longer(
+    cols=-n,
+    names_to = 'variable',
+    values_to = 'n_na'
+  ) |> 
+  mutate(prop_na=n_na/n) |> 
+  data.table()
+```
+
+In this case just 2.3% of data is missing. Let's review the pattern if we group by Year
+
+```{r}
+#| fig-height: 5
+# review proportion of NAs by Year
+df_share_region_year <- df_share_region |> 
+  group_by(Year) |> 
+  summarise(
+    n = n(),
+    n_country = n_distinct(Region),
+    across(
+      starts_with('Renewable'),
+      ~sum(ifelse(is.na(.x),1,0))
+    )
+  ) |>
+  rename(n_na=starts_with('Renewable')) |> 
+  mutate(prop_na=n_na/n)
+
+# graph share of NAs in Renewable per Year
+df_share_region_year |> 
+  ggplot(aes(x=Year,y=prop_na)) +
+  geom_line() +
+  theme_bw() +
+  ggtitle(paste0(
+    '% NAs in Renewable energy share of',
+    ' electricity capacity \nand generation per Year')) +
+  scale_y_continuous('% NAs',labels=scales::percent_format())
+```
+
+In this case this 2.3% is explained due to 2023 not having any value for this dataset. Hence if we exclude this year our data at a regional level has no missing values.
+
+Let's assess our data at a country-level
+
+```{r}
+# at position 11 starts countries
+df_share_country <- df_share |> 
+  rename(`Country/area`=`Region/country/area`) |> 
+  filter(`Country/area` %in% c_names[11:length(c_names)])
+
+# review proportion of NAs per column: global
+df_share_country |> 
+  summarise(
+    across(
+      everything(),
+      ~sum(ifelse(is.na(.x),1,0))
+    ),
+    n=n()
+  ) |> 
+  pivot_longer(
+    cols=-n,
+    names_to = 'variable',
+    values_to = 'n_na'
+  ) |> 
+  mutate(prop_na=n_na/n) |> 
+  data.table()
+```
+
+In this case, the data set have ~10% of missing values
+
+Again, let's review whether this is explained just by Year
+
+```{r}
+#| fig-height: 5
+
+# review proportion of NAs group by Year
+df_share_country_year <- df_share_country |> 
+  group_by(Year) |> 
+  summarise(
+    n = n(),
+    n_country = n_distinct(`Country/area`),
+    across(
+      starts_with('Renewable'),
+      ~sum(ifelse(is.na(.x),1,0))
+    )
+  ) |>
+  rename(n_na=starts_with('Renewable')) |> 
+  mutate(prop_na=n_na/n)
+
+# graph share of NAs in Electric Statistics per Year
+df_share_country_year |> 
+  ggplot(aes(x=Year,y=prop_na)) +
+  geom_line() +
+  theme_bw() +
+  ggtitle(paste0(
+    '% NAs in Renewable energy share of',
+    ' electricity capacity \nand generation per Year')) +
+  scale_y_continuous('% NAs',labels=scales::percent_format())
+```
+
+In this case there are missing values in different years with a downtrend and a spike on 2023.
+
+Let's assess how missing values are with Year and Indicator column
+
+```{r}
+#| fig-height: 7
+
+# review proportion of NAs per by Year and Indicator
+df_share_country_year_ind <- df_share_country |> 
+  group_by(Year,Indicator) |> 
+  summarise(
+    n = n(),
+    across(
+      starts_with('Renewable'),
+      ~sum(ifelse(is.na(.x),1,0))
+    )
+  ) |>
+  rename(n_na=starts_with('Renewable')) |> 
+  mutate(prop_na=n_na/n)
+
+#  % share of NAs per by Year and Indicator
+df_share_country_year_ind |> 
+  mutate(Year=factor(Year)) |> 
+  ggplot(aes(x=Indicator,y=Year,fill=prop_na)) +
+  geom_tile() +
+  scale_fill_gradient2(
+    "% of NAs",
+    low='green',
+    mid='white',
+    high='orange',
+    midpoint = 0.5,
+    labels=scales::percent_format()
+  ) +
+  theme_bw() +
+  ggtitle(paste0(
+    '% NAs in Renewable energy share of electricity capacity',
+    ' \nand generation per Year and Indicator')) +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+```
+
+Aside from 2023, missing value share for Indicator is below ~25% across time.
+
+After seeing this we would expect a lot of countries to have values in the metric of interest. Let's visualize how the share of countries that have less than a certain threshold of missing values.
+
+```{r}
+#| fig-height: 7
+
+# review proportion of NAs per by Year and Country
+df_share_country_year_c <- df_share_country |> 
+  group_by(Year,`Country/area`) |> 
+  summarise(
+    n = n(),
+    across(
+      starts_with('Renewable'),
+      ~sum(ifelse(is.na(.x),1,0))
+    )
+  ) |>
+  rename(n_na=starts_with('Renewable')) |> 
+  mutate(prop_na=n_na/n) |> 
+  mutate(flag=ifelse(prop_na<0.5,1,0)) |> 
+  group_by(Year) |> 
+  summarise(less_50_na=sum(flag)/n())
+
+# share of countries that meet criteria
+df_share_country_year_c  |> 
+  ggplot(aes(
+    x=Year,
+    y=less_50_na))+
+  geom_line() +
+  theme_bw() +
+  ggtitle(paste0(
+    '% of countries with less than 50% of NAs',
+    ' in Renewable energy share of \nelectricity capacity',
+    ' and generation per Year')
+    ) +
+  scale_y_continuous('% NAs',labels=scales::percent_format()) 
+```
+
+For this particular dataset from the 200+ countries above 75% of them have less than 50% of missing values. Unlike the first dataset we can do an analysis at region as well at country-level.
+
+### Public Investments (2021 million USD) by Country/area, Technology and Year
+
+```{r}
+#| message: false
+# read data
+df_finance <- read_csv(
+  "./raw_data/irena_finance.csv"
+)
+
+attr(df_finance, 'spec') <- NULL
+
+# review data structure
+df_finance |> 
+  str()
+
+# assess data sample
+df_finance |>
+  arrange(`Public Investments (2021 million USD)`) |> 
+  head() |> 
+  data.table()
+```
+
+For finance data we don't have a special string to inform about missing data. In this case, the lowest value is cero.
+
+Let's analyze whether this dataset has missing values or not.
+
+```{r}
+# review proportion of NAs per column: global
+df_finance |> 
+  summarise(
+    across(
+      everything(),
+      ~sum(ifelse(is.na(.x),1,0))
+    ),
+    n=n()
+  ) |> 
+  pivot_longer(
+    cols=-n,
+    names_to = 'variable',
+    values_to = 'n_na'
+  ) |> 
+  mutate(prop_na=n_na/n) |> 
+  data.table()
+```
+
+For finance data it looks like no missing values are reported.
