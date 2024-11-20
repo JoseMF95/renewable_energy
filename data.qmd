@@ -41,7 +41,6 @@ The Global Carbon Data denotes the overall fossil fuel emissions globally. There
 df_territorialemissions <- read_excel("./raw_data/National_Fossil_Carbon_Emissions_2022v1.0.xlsx",
                               sheet = 2,
                               skip = 11)
-head(df_territorialemissions)
 ```
 
 
