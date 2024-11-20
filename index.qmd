@@ -1,2 +1,10 @@
 # Introduction
-we are doing a project about carbon dioxide in the atmosphere. 
+Discussions about climate change have always been relevant. There are solutions that have been proposed to slow it down. As technology advances throughout the year, one solution was to transition into renewable energy. We are interested in learning how this solution was implemented over the years. Some of the questions we are trying to answer are:
+
+Are there any changes with energy generation patterns throughout the years?
+What is the main renewable energy that we are transitioning into right now?
+Are there any difference in transitioning pace between different countries?
+Is there any reduction in fossil fuel/carbon emissions globally or within different countries(territorial emissions)
+and more...
+
+
