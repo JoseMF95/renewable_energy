@@ -4,7 +4,7 @@
 1. International Renewable Energy Agency (IRENA)
 Link: https://www.irena.org/Data/Downloads/IRENASTAT (link to IRENA data query tool)
 
-The data is collected by the international renewable energy agency IRENA from its member countries. IRENA is an intergovernmental organization that exists to support country's with their transition to using sustainable energy. There are currently 169 member countries and the EU. IRENA is able to collect their data through their questionnaire for these member countries. In addition, desk research is also conducted to complement the questionnaire to provide a comprehensive report. IRENA updates its database annually. 
+The data is collected by the international renewable energy agency IRENA from its member countries. IRENA is an intergovernmental organization that exists to support countries with their transition to using sustainable energy. There are currently 169 member countries and the EU. IRENA is able to collect their data through their questionnaire for these member countries. In addition, desk research is also conducted to complement the questionnaire to provide a comprehensive report. IRENA updates its database annually. 
 
 There is a data query on the IRENA website for us to look at data related to heat generation or electricity generation in general. There is also data that looks at sustainable energy as a percentage of overall energy generation of all the member countries. We are able to select these data through a data query on the IRENA website. The data query allows us to download data directly in excel or csv format. To import the data, we will download the data as a csv file and load it in to R with read.csv() function. The data is in wide format that is sorted by countries, then by different groups of indicators (% wind generation, etc.), and finally by yearly data (this is consistent across the data we found using the data query). It has data starting from the 2000s to 2023 (previous year).
 
@@ -67,21 +67,12 @@ df_electstats_region <- read_csv(
 )
 
 attr(df_electstats_region, 'spec') <- NULL
-
-# review data structure
-df_electstats_region |> 
-  str()
-
-# assess data sample
-df_electstats_region |>
-  arrange(`Electricity statistics`) |> 
-  head() |> 
-  data.table()
 ```
 
-We observe that Electricity statistics column is saved as character. In particular, some rows have value equal "-", we label them as NA and convert the column to numeric.
 
 ```{r}
+# electricity statistics column is saved as character. 
+# in particular, some rows have value equal "-", we label them as NA 
 # convert electricity statistics to numeric
 df_electstats_region <- df_electstats_region |> 
   mutate(
@@ -233,20 +224,12 @@ df_electstats_country <- read_csv(
 )
 
 attr(df_electstats_country, 'spec') <- NULL
-
-# review data structure
-df_electstats_country |> 
-  str()
-
-# assess data sample
-df_electstats_country |>
-  arrange(`Electricity statistics (MW/GWh)`) |> 
-  head() |> 
-  data.table()
 ```
-Again Electricity statistics column is saved as character. In particular, some rows have value equal "-", we label them as NA and convert the column to numeric.
+
 
 ```{r}
+# electricity statistics column is saved as character. 
+# in particular, some rows have value equal "-", we label them as NA 
 # convert electricity statistics to numeric
 df_electstats_country <- df_electstats_country |> 
   mutate(
@@ -452,23 +435,16 @@ df_share <- read_csv(
 )
 
 attr(df_share, 'spec') <- NULL 
-
-# review data structure
-df_share %>% 
-  str()
-
-# assess data sample
-df_share |>
-  arrange(`Renewable energy share of electricity capacity and generation (%)`) |> 
-  head() |> 
-  data.table()
 ```
 
-This data requires the same transformation as with previous sets. Only difference is that it includes region and country/area. Let's split data an analyze separately. Let's start examining by region
 
 ```{r}
+# column is saved as character. 
+# in particular, some rows have value equal "-", we label them as NA 
 # convert renewable column to numeric
 # divide pct by 100
+# includes region and country/area.
+# Let's split data an analyze separately
 df_share <- df_share|> 
   mutate(
     across(
@@ -695,19 +671,7 @@ df_finance <- read_csv(
 )
 
 attr(df_finance, 'spec') <- NULL
-
-# review data structure
-df_finance |> 
-  str()
-
-# assess data sample
-df_finance |>
-  arrange(`Public Investments (2021 million USD)`) |> 
-  head() |> 
-  data.table()
 ```
-
-For finance data we don't have a special string to inform about missing data. In this case, the lowest value is cero.
 
 Let's analyze whether this dataset has missing values or not.
 
