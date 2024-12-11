@@ -1,0 +1,208 @@
+# Results
+
+```{r}
+library(tidyverse)
+library(ggplot2)
+library(dplyr)
+library(plotly)
+```
+
+Is there any reduction in fossil fuel/carbon emissions globally or within different countries(territorial emissions)?
+
+To answer this question, we utilize the dataframe: df_territorialemissions 
+First, we renamed our columns of the dataset df_territorialemissions, and then we start transforming our data for further exploration in carbon emissions over time by country and by its continent. 
+
+We want to get continent information (from the National_Fossil_Carbon_Emissions dataset)
+```{r}
+df_continents <- read_excel("./raw_data/National_Fossil_Carbon_Emissions_2022v1.0.xlsx",
+                              sheet = 5,
+                              skip = 4)
+colnames(df_continents) <- c("Continent", "Country")
+
+df_continents <- df_continents |> 
+  separate_rows(Country, sep = ", ")
+```
+
+We join the continent information with our emissions data. 
+```{r}
+#df_territorialemissions <- df_territorialemissions |> 
+  #rename(Year = `...1`)
+
+investmentandemissions <- df_territorialemissions[1:220] |> 
+  pivot_longer(cols = Afghanistan:Zimbabwe, names_to = "Country", values_to = "CarbonEmission") |> 
+  left_join(df_continents, by = 'Country')
+  
+```
+
+After processing the data we have, we can now visualize the average Emissions over time from 1990 to 2021 by Continents comparing to the world average.
+```{r}
+avgemissions <- investmentandemissions |> 
+  filter(Year >= 1990) |> 
+  group_by(Continent, Year) |> 
+  summarize(averageemissions = mean(CarbonEmission, na.rm = TRUE), .groups = 'drop')
+
+worldemissions <- investmentandemissions |> 
+  filter(Year >= 1990) |> 
+  group_by(Year) |> 
+  summarize(averageemissions = mean(CarbonEmission, na.rm = TRUE), .groups = 'drop')
+
+avgandworldemissions <- avgemissions |> 
+  left_join(worldemissions, by = "Year") |> 
+  rename("averageemissions" = `averageemissions.x`) |> 
+  rename("worldavgemissions" = `averageemissions.y`) 
+
+ggplot(avgandworldemissions, aes(x = Year))+
+  geom_line(aes(y = averageemissions, color = "Region Average"))+
+  geom_line(aes(y = worldavgemissions, color = "World Average"))+
+  facet_wrap(~Continent)+
+  labs(title = "Average CO2 Emissions from 1990-2021 by Continent, Comparing to World Average",
+       y = "CO2 emissions (in Million Tonnes)",
+       color = "World and Region Averages")
+```
+Overall, we can see that the average world emission is still slightly increasing throughout 1990 - 2021. The graph shows that the world's average Carbon emission is most largely contributed by Asia and North America. From the graph, we can see that the region average is significantly higher than the world average in both of these continents. Especially in Asia, we see a significant increase in carbon emissions through 1990 - 2021. There is a notable decrease in Carbon emission in Europe which crossed the world average at around 2008; it now produces less carbon than the average world emissions. There is a notable decrease in North America's carbon emission, although still above average, the decrease narrowed the gap between North America's carbon emission average and the World average. The other regions such as South America and Africa marks a slight increase while Oceania stayed roughly the same from 1990 - 2021.
+
+How does investment in renewable energy vary across regions/countries? 
+
+```{r}
+bycontinent <- investmentandemissions |> 
+  filter(Year == 2021) 
+```
+
+Now, we can get the total public investment in renewable energy for each of these countries from the df_finance dataset.
+```{r}
+toppublicfinance <- df_finance |> 
+  filter(Year == 2021) |> 
+  rename(Public_Investment = `Public Investments (2021 million USD)`) |> 
+  rename(Country = `Country/area`) |> 
+  group_by(`Country`) |> 
+  summarize(Total_Public_Investment = sum(Public_Investment))
+sorted_countries <- toppublicfinance |> 
+  arrange(desc(Total_Public_Investment))
+sorted_countries
+```
+
+
+we can now join the two datasets to create the dataframe we want to analyze and make visualizations
+```{r}
+merged_data <- bycontinent |> 
+  left_join(toppublicfinance, by = 'Country')
+```
+
+Now, we can perform our visualization step:
+
+```{r}
+merged_data <- merged_data |> 
+  drop_na()
+
+merged_data |> 
+  filter(CarbonEmission < 700) |> 
+  plot_ly(x = ~Total_Public_Investment, y = ~CarbonEmission,
+        color = ~as.factor(Continent), text= ~Country,
+        hoverinfo = 'text') |> 
+  layout(
+    title = "Total Public Investment vs. Carbon Emission by Country by Region in 2021"
+  )
+
+```
+
+```{r}
+
+merged_data |> 
+  filter(CarbonEmission < 3000) |> 
+  group_by(Continent) |> 
+  ggplot(aes(x = Total_Public_Investment, y = CarbonEmission)) + 
+  geom_point() +
+  facet_wrap(~Continent) + 
+  labs(
+    title = "Total Public Investment vs. Carbon Emissions by in 2021",
+    x = "Total Public Investment",
+    y = "Carbon Emissions (in Million Tonnes)"
+  )
+
+```
+
+```{r}
+merged_data |> 
+  filter(CarbonEmission < 3000) |> 
+  group_by(Continent) |> 
+  ggplot(aes(x = Total_Public_Investment, y = CarbonEmission)) + 
+  geom_point() +
+  facet_wrap(~Continent) + 
+  labs(
+    title = "Total Public Investment vs. Carbon Emissions by in 2021",
+    x = "Total Public Investment",
+    y = "Carbon Emissions (in Million Tonnes)"
+  )
+```
+
+
+We can get the top 10 countries that have the most CO2 emissions right now:
+```{r}
+topemissioncountries <- df_territorialemissions[1:220]
+
+topemissioncountries <- topemissioncountries |> 
+  pivot_longer(cols = Afghanistan:Zimbabwe, names_to = 'Country', values_to = 'Millions_Tonnes_of_Carbon') |>
+  filter(Year == 2021)  |> 
+  arrange(desc(Millions_Tonnes_of_Carbon)) |>  
+  slice_head(n = 10)
+```
+
+
+
+
+
+
+We can analyze their territorial emission data here:
+```{r}
+emissionsbycountries <- df_territorialemissions |> 
+  select('Year', 'Canada', 'France', 'Germany', 'Italy', 'Japan', 'Russia', 'United Kingdom', 'USA','Somalia','South Sudan', 'Central African Republic', 'Niger', 'Chad', 'Mali', 'Burundi', 'Yemen', 'Burkina Faso', 'Sierra Leone','Switzerland', 'Norway', 'Iceland', 'Hong Kong', 'Sweden', 'Denmark', 'Germany', 'Ireland', 'Singapore', 'Australia')
+  
+emissionsbycountries <- emissionsbycountries |> 
+  filter(Year >= 2002) |> 
+  pivot_longer(cols = Canada:Australia, names_to = 'Country') |> 
+  mutate(Development = case_when(Country %in% c('Canada', 'France', 'Germany', 'Italy', 'Japan', 'Russia', 'United Kingdom', 'USA') ~ "G8",
+      Country %in% c('Somalia','South Sudan', 'Central African Republic', 'Niger', 'Chad', 'Mali', 'Burundi', 'Yemen', 'Burkina Faso', 'Sierra Leone') ~ "LowestHDI",
+      Country %in% c('Switzerland','Norway', 'Iceland', 'Hong Kong', 'Sweden', 'Denmark', 'Germany', 'Ireland', 'Singapore', 'Australia') ~ "HighestHDI")) |> 
+  rename('Million_Tonnes_of_Carbon' = 'value')
+
+```
+
+A Log transformation is done here to reduce dominance of G8 emission averages on the other two groups. 
+```{r, fig.height = 6}
+emissionsbycountries |> 
+  group_by(Year, Development) |> 
+  ggplot(aes(x = Year, y = log10(Million_Tonnes_of_Carbon), color = Country)) +
+  facet_grid(~Development) +
+  geom_line() +
+  labs(title = "Yearly CO2 Emissions by Development of Countries transformed by Log10",
+       y = "Log 10 of CO2 Emissions by Million of Tonnes") +
+  guides(color = guide_legend(ncol = 3)) +
+  theme_minimal()
+```
+CONCLUSION OF GRAPH TO DO::
+
+Below, you can see a log average graph of the average emissions by each development group, which corresponds to our conclusion from the above graph.
+```{r}
+emissionsbycountries |> 
+  group_by(Year, Development) |> 
+  summarize(Average_Emissions = mean(Million_Tonnes_of_Carbon)) |> 
+  ggplot(aes(x = Year, y = log10(Average_Emissions), color = Development)) +
+  geom_line() +
+  labs(title = "Log10 of Average CO2 Emissions by Development of Countries",
+       y = "Log of Average CO2 Emissions")
+  theme_minimal
+```
+We set the benchmark emissions to Switzerland as it is the Top 1 country by HDI and can be used as a target for other areas/countries in the world for emission target. 
+
+```{r}
+emissionsbycontinent <- df_territorialemissions |> 
+  select('Year', 'Africa', 'Asia', 'Central America', 'Europe', 'Middle East', 'North America', 'Oceania', 'South America','Switzerland')
+
+emissionsbycontinent <- emissionsbycontinent |> 
+  filter(Year >= 2002) 
+
+head(emissionsbycontinent)
+```
+
+
+
