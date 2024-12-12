@@ -48,5 +48,35 @@
     "crumbs": [
       "<span class='chapter-number'>3</span>  <span class='chapter-title'>Results</span>"
     ]
+  },
+  {
+    "objectID": "conclusion.html",
+    "href": "conclusion.html",
+    "title": "5  Conclusion",
+    "section": "",
+    "text": "5.1 Our Takeaways:\n-We observed a weak relationship between public investment in renewable energy and carbon emission reductions. For example, South America is a top investor in renewables but still remains a big carbon emitter. Meanwhile, high-emission countries like China and India allocate relatively little funds to renewable energy. This shows us the need for more strategic and impactful investment to truly drive change.\n-We found that renewable energy, especially solar and wind power, have been growing rapidly since 2010, driving much of the transition, but fossil fuels are still the dominant source of energy worldwide and the pace of change varies across regions. The reliance on non-renewables has slowed down, but the shift isn’t happening quickly enough to meet climate targets. Carbon emissions is still a pressing issue for us.",
+    "crumbs": [
+      "<span class='chapter-number'>5</span>  <span class='chapter-title'>Conclusion</span>"
+    ]
+  },
+  {
+    "objectID": "conclusion.html#limitations",
+    "href": "conclusion.html#limitations",
+    "title": "5  Conclusion",
+    "section": "5.2 Limitations:",
+    "text": "5.2 Limitations:\n-In the process of our analysis, some energy technologies, such as geothermal, biofuels, marine have limited data, so it’s difficult to fully assess their potential or growth. Additionally, some datasets, such as public investment figures, are incomplete for specific countries. -While our analysis allowed us to identify general patterns, more in-depth analysis is required if we want to capture more country-specific nuances, such as unique policy impacts or what social and economic factors are influencing energy adoption.",
+    "crumbs": [
+      "<span class='chapter-number'>5</span>  <span class='chapter-title'>Conclusion</span>"
+    ]
+  },
+  {
+    "objectID": "conclusion.html#lessons-learned-and-directions",
+    "href": "conclusion.html#lessons-learned-and-directions",
+    "title": "5  Conclusion",
+    "section": "5.3 Lessons Learned and Directions:",
+    "text": "5.3 Lessons Learned and Directions:\nLooking ahead, the energy transition needs to accelerate to meet our growing energy demands and global climate goals. This means we should work toward phasing out fossil fuels faster, modernizing energy grids, and investing in technologies like energy storage and green hydrogen. However, technological advancements alone won’t be enough. Each region faces unique challenges and opportunities in the renewable energy transition. Thus, we need to align tailored strategies and policies to address these regional differences and maximize the impact of renewable energy initiatives. These efforts should focus on addressing regional disparities, such as expanding renewable energy access in underserved areas and fostering international collaboration to share knowledge and resources. By addressing these challenges head-on and aligning investments with environmental goals, we can make the transition to a sustainable energy future more effective.",
+    "crumbs": [
+      "<span class='chapter-number'>5</span>  <span class='chapter-title'>Conclusion</span>"
+    ]
   }
 ]
