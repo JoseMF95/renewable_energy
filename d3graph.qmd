@@ -1,13 +1,34 @@
 # Interactive graph
 
+```{=html}
 <style>
   * {
     font-family: sans-serif;
   }
 </style> 
+```
 
-<div id="plot">
-</div>
+## World's Renewable Energy Electricity Generation (2018-2022)
 
+<input type="radio" name="year" value="2018">2018</input>
+<input type="radio" name="year" value="2019">2019</input>
+<input type="radio" name="year" value="2020">2020</input>
+<input type="radio" name="year" value="2021">2021</input>
+<input type="radio" name="year" value="2022">2022</input>
+
+::: {#plot}
+:::
+
+- Hydropower is the technology that contributes the most to electricity generation during this time period. Over the years it shows marginal increments.
+
+- Marine power is the technology that contributes the least to electricity generation during this time period. Its value across the years presents low variability.
+
+- For the rest of the technologies it seems that their contribution to electricity generation is increasing. In particular Wind and Solar energy have beome more relevant in the last couple of years.
+
+- From 2021 to 2022 for all technologies we observe little to no change in their electricity generation amount.
+
+```{=html}
 <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
 <script src="scripts/myscript.js"></script>
+```
+
