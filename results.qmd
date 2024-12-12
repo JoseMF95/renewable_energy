@@ -270,13 +270,20 @@ df_region_total |>
 
 Total renewable electricity generation rate higher than non-renewable hold for almost all regions in the analyzed timeframe (except Eurasia). For Europe and North America non-renewable have a negative rate, but the Total is still positive (mainly driven by renewable).
 
-Is there any reduction in fossil fuel/carbon emissions globally or within different countries(territorial emissions)?
+##Is there any reduction in fossil fuel/carbon emissions globally or within different countries(territorial emissions)?
 
 To answer this question, we utilize the dataframe: df_territorialemissions 
+
 First, we renamed our columns of the dataset df_territorialemissions, and then we start transforming our data for further exploration in carbon emissions over time by country and by its continent. 
 
-We want to get continent information (from the National_Fossil_Carbon_Emissions dataset)
+Here, we also want to get continent information which is provided on a separate sheet (from the National_Fossil_Carbon_Emissions dataset)
 ```{r}
+df_territorialemissions <- read_excel("./raw_data/National_Fossil_Carbon_Emissions_2022v1.0.xlsx",
+                              sheet = 2,
+                              skip = 11)
+df_territorialemissions <- df_territorialemissions |> 
+  rename(Year = `...1`)
+
 df_continents <- read_excel("./raw_data/National_Fossil_Carbon_Emissions_2022v1.0.xlsx",
                               sheet = 5,
                               skip = 4)
@@ -323,7 +330,13 @@ Overall, we can see that the average world emission is still slightly increasing
 
 We can continue by investigating the relationship between public investment on energy technology and carbon emissions.
 
-How does public investment in energy technology vary across regions/countries? 
+##How does public investment in energy technology vary across regions/countries? 
+
+Let's upload our public investment data first
+```{r}
+df_finance <- read_csv("./raw_data/irena_finance.csv")
+```
+
 
 ```{r}
 investmentovertime <- df_finance |> 
