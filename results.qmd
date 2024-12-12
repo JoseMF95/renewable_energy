@@ -9,13 +9,18 @@ library(plotly)
 library(treemapify)
 ```
 
-Is there any reduction in fossil fuel/carbon emissions globally or within different countries(territorial emissions)?
+##Is there any reduction in fossil fuel/carbon emissions globally or within different countries(territorial emissions)?
 
 To answer this question, we utilize the dataframe: df_territorialemissions 
 First, we renamed our columns of the dataset df_territorialemissions, and then we start transforming our data for further exploration in carbon emissions over time by country and by its continent. 
 
 We want to get continent information (from the National_Fossil_Carbon_Emissions dataset)
 ```{r}
+df_territorialemissions <- read_excel("./raw_data/National_Fossil_Carbon_Emissions_2022v1.0.xlsx",
+                              sheet = 2,
+                              skip = 11)
+df_territorialemissions <- df_territorialemissions |> 
+  rename(Year = `...1`)
 df_continents <- read_excel("./raw_data/National_Fossil_Carbon_Emissions_2022v1.0.xlsx",
                               sheet = 5,
                               skip = 4)
@@ -62,8 +67,13 @@ Overall, we can see that the average world emission is still slightly increasing
 
 We can continue by investigating the relationship between public investment on energy technology and carbon emissions.
 
-How does public investment in energy technology vary across regions/countries? 
+##How does public investment in energy technology vary across regions/countries? 
 
+Let's upload our data for public investment
+```{r}
+df_finance <- read_csv("./raw_data/irena_finance.csv")
+```
+we want to analyze public investment from 1990 to the lastest data we have which is 2021. Here are some preprocessing steps that we did. 
 ```{r}
 investmentovertime <- df_finance |> 
   filter(Year >= 1990) |> 
@@ -72,7 +82,6 @@ investmentovertime <- df_finance |>
 ```
 
 We know that there are a lot of zero values in our data, so we filter out the technologies that have more than 4000 0 values. The 0 values also means less investment in that particular techonology. Therefore, the technologies left are the most common investment aggregately around the world.
-
 ```{r}
 filteredinvestmentovertime <- investmentovertime |> 
   pivot_wider(names_from = Technology, values_from = Public_Investment) |> 
