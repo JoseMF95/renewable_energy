@@ -26,8 +26,8 @@ df_continents <- df_continents |>
 
 We join the continent information with our emissions data. 
 ```{r}
-#df_territorialemissions <- df_territorialemissions |> 
-  #rename(Year = `...1`)
+df_territorialemissions <- df_territorialemissions |> 
+  rename(Year = `...1`)
 
 investmentandemissions <- df_territorialemissions[1:220] |> 
   pivot_longer(cols = Afghanistan:Zimbabwe, names_to = "Country", values_to = "CarbonEmission") |> 
