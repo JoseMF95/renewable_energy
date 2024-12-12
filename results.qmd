@@ -7,7 +7,268 @@ library(ggplot2)
 library(dplyr)
 library(plotly)
 library(treemapify)
+library(redav)
 ```
+
+```{r}
+# read data
+df_statsregion <-read.csv('./raw_data/irena_electstats_region.csv')
+
+# change Electricity statistics to numeric
+df_statsregion$Electricity.statistics <- as.numeric(df_statsregion$Electricity.statistics)
+```
+
+Let's start with a quick glimpse around statistics from renewable energy technologies
+
+```{r}
+# review global trends
+df_world <- df_statsregion |> 
+  filter(Region=='World')
+
+renewable_energies <- c('Solar','Wind','Hydro','Marine','Bio','Geo')
+
+# graph share per data type and technology
+df_world |> 
+    filter(str_detect(
+        Technology,
+        paste0("^",renewable_energies,".*$",collapse="|")
+        )
+    ) |> 
+    filter(Year < 2023) |> 
+    group_by(Year,Data.Type) |> 
+    mutate(prop = Electricity.statistics
+           /sum(Electricity.statistics,na.rm=TRUE)) |> 
+    mutate(Year = factor(Year)) |> 
+    mutate(Technology = str_extract(Technology,"^[^ ]+")) |>
+    ggplot(aes(
+      x=Year,
+      y=prop,
+      group=Technology,
+      col=Technology)
+    ) +
+    geom_line() +
+    scale_y_continuous(
+      "Share %",
+      labels=scales::percent_format()) +
+    facet_wrap(.~Data.Type) +
+    theme_bw() +
+    theme(
+      axis.text.x = element_text(
+        angle = 90,
+        vjust = 0.5, 
+        hjust=1),
+      legend.position="bottom") +
+    ggtitle(paste0(
+      "World's Share of Electricity", 
+      "Generation and \nInstalled Capacity", 
+      "per Renewable Energy")
+    )
+```
+
+Since 2000 Hydropower has been the primary renewable energy technology in the world. Nonetheless, we observe that Wind and Solar energy are gaining relevance since they contribute more and more to the share of Electricity Generation and Installed Capacity.
+
+In order to assess the latest trends in renewable source technologies let's review the electricity installed capacity per Region for 2022.
+
+```{r}
+df_region <- df_statsregion |> 
+  filter(Region!='World')
+
+
+df_region|> 
+  filter(str_detect(
+    Technology,
+    paste0("^",renewable_energies,".*$",collapse="|")
+    )
+  ) |> 
+  filter(
+    Year == 2023,
+    str_detect(Data.Type,"(MW)")
+  ) |> 
+  mutate(Electricity.statistics=Electricity.statistics/1e3) |> 
+  mutate(Technology = str_extract(Technology,"^[^ ]+")) |>
+  mutate(Region = ifelse(
+    str_detect(Region,"Central"),
+    "Central America",
+    Region)
+  ) |> 
+  ggplot(aes(
+    x=fct_reorder(
+      Region,
+      Electricity.statistics,
+      .na_rm=TRUE),
+    y=Electricity.statistics,
+    col=Technology)
+  ) +
+  geom_point(alpha=0.8,size=2) +
+  xlab("Region")+
+  ylab("Electricity Installed Capacity (in thousands MW)") +
+  ggtitle(paste0(
+  "Electricity Installed Capacity", 
+  "\nper Region in 2022")
+  ) +
+  coord_flip() +
+  theme_bw() +
+  theme(legend.position="bottom") 
+```
+  
+Most regions have Hydropower as the technology with most electricity installed capacity. This pattern is different for Asia and Europe where Solar energy is the predominant one. For most regions all renewable energy technologies are close in terms of installed capacity, except for Asia, Europe and North America where Hydropower, Solar and Wind deviate significantly from others. 
+
+The previous graph shows that Asia and Europe skews the distribution to the right due to their magnitude. In order to make a fair comparison, let's analyze this pattern using change rate. For this case, we will analyze how electricity installed capacity changed from 2017 to 2022 (% change). 
+
+```{r}
+#| fig-width: 10
+df_region_5y <- df_region |> 
+    filter(str_detect(
+        Technology,
+        paste0("^",renewable_energies,".*$",collapse="|")
+    )
+    ) |> 
+    filter(
+        Year %in% c(2017,2022),
+        str_detect(Data.Type,"(MW)")
+    ) |> 
+    mutate(Technology = str_extract(Technology,"^[^ ]+")) |>
+    mutate(Region = ifelse(
+        str_detect(Region,"Central"),
+        "Central America",
+        Region)
+    ) |> 
+    group_by(Region,Technology) |> 
+    mutate(delta = Electricity.statistics/
+             lag(Electricity.statistics)-1) |> 
+  ungroup() |> 
+  mutate(delta=ifelse(is.na(delta),0,delta)) |> 
+  filter(Year == 2022) |> 
+  select(-Electricity.statistics) |> 
+  pivot_wider(
+    names_from='Technology',
+    values_from = 'delta') |> 
+  select(-c(Marine,Data.Type,Year))
+
+draw_biplot(df_region_5y,arrows = TRUE) +
+  ggtitle(paste0(
+    "Biplot Electricity Installed Capacity",
+    " per Region")
+  )
+```
+We observe that despite Asia, Europe and North America present high values for Solar and Wind technologies when we change to percentage increase South America takes the lead (>800% Solar and >100% Wind increase respectively), followed by Middle East (>500% Solar and >200% Wind increase respectively). Africa increased by 17% its Hydropower's electricity installed capacity. For Geothermal, South America takes the lead with a >100% increase in electricity installed capacity from 2017 to 2022.
+
+Previous graph shows that big magnitudes potentially overshadow interesting trends against other categories with relatively smaller amounts. Plotting percentage changes or creating indexes helps us to visualize this and in a multivariate setting biplot its really useful.
+
+From previous graphs we observed an increasing adoption for different technologies, nevertheless let's review how much it represents from the total energy comsumption.
+
+```{r}
+df_world_total <- df_statsregion |> 
+  filter(
+    Region=="World",
+    str_detect(Data.Type,"(GWh)"),
+    str_detect(Technology,"Total"),
+    Year < 2023
+    )
+
+df_world_total |> 
+  mutate(Electricity.statistics = 
+           Electricity.statistics/1000) |> 
+  ggplot(aes(
+    x=factor(Year),
+    y=Electricity.statistics,
+    fill=Technology)
+  ) +
+  geom_col() +
+  scale_fill_discrete("")+
+  xlab("Year") +
+  ylab("Electricity Generation\n(in thousands GWh)") +
+  ggtitle(paste0(
+    "World's total Electricity Generation",
+    "\nper source")) +
+  theme_bw() +
+  theme(
+    axis.text.x = element_text(
+      angle = 90,
+      vjust = 0.5, 
+      hjust=1),
+    legend.position="bottom") 
+```
+
+In the above graph we observe an increase in the electricity generation across 2000-2022 for both non-renewable and renewable sources. To make this clearer let's assess the YoY changes to see how much if sources have similar change rates or one is increasing more than other.
+
+```{r}
+df_world_total |> 
+    pivot_wider(
+        names_from = Technology,
+        values_from = Electricity.statistics
+        ) |> 
+    mutate(`Total (both sources)` = rowSums(
+        across(starts_with("Total"))
+        )
+    ) |> 
+    mutate(across(starts_with('Total'),~.x/lag(.x)-1)) |>
+    filter(Year > 2001) |> 
+    pivot_longer(cols = starts_with("Total")) |> 
+    ggplot(aes(
+        x=fct_reorder(name,-value,.na_rm=TRUE),
+        y=value)
+    ) +
+    geom_boxplot() +
+    scale_y_continuous(
+      "% change",
+      labels=scales::percent_format()) +
+    theme_bw() +
+    xlab("") +
+    ggtitle(paste0("Electricity Generation Change YoY", 
+    "\nby source (2001-2022)"))
+```
+ 
+Boxplots show us that even though renewable and non-renewable have increased across the years the rate is higher for renewable. For example, year 2020 (Covid), non-renewable had a decrease of 2.6% YoY whereas renewable presented a 6.6% increase YoY, this gives us hint around renewable energies adoption. 
+
+Let's review whether the latter pattern holds across regions
+
+```{r}
+df_region_total <- df_statsregion |> 
+  filter(
+    Region!="World",
+    str_detect(Data.Type,"(GWh)"),
+    str_detect(Technology,"Total"),
+    Year < 2023
+    )
+
+df_region_total |> 
+    pivot_wider(
+        names_from=Technology,
+        values_from = Electricity.statistics
+    ) |> 
+    mutate(`Total (both sources)` = rowSums(
+        across(starts_with("Total"))
+        )
+    ) |> 
+    group_by(Region) |> 
+    mutate(across(starts_with('Total'),~.x/lag(.x)-1)) |> 
+    ungroup() |> 
+    filter(Year > 2001) |> 
+    pivot_longer(cols = starts_with("Total")) |> 
+    mutate(Region = ifelse(
+        str_detect(Region,"Central"),
+        "Central America",
+        Region)
+    ) |> 
+    group_by(Region,name) |>
+    summarise(median = median(value),.groups = "drop") |> 
+    ggplot(aes(x=fct_reorder2(Region,name,-median),y=median,col=name)) +
+    geom_point(alpha=0.7) +
+    scale_color_discrete("") +
+    scale_y_continuous(
+        "% change",
+        labels=scales::percent_format()) +
+    xlab("") +
+    ggtitle(paste0(
+    "Median Electricity Generation Change", 
+    "\nby Region (2001-2022)"))+
+    coord_flip() +
+    theme_bw() +
+    theme(legend.position="bottom")
+```
+
+Total renewable electricity generation rate higher than non-renewable hold for almost all regions in the analyzed timeframe (except Eurasia). For Europe and North America non-renewable have a negative rate, but the Total is still positive (mainly driven by renewable).
 
 Is there any reduction in fossil fuel/carbon emissions globally or within different countries(territorial emissions)?
 
