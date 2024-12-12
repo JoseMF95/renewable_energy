@@ -102,7 +102,9 @@ mergedinvestmentdata |>
   facet_grid(Continent ~ Technology) + 
   labs(title = "Average Public Investments by Type of Technology and Continent from 1990 - 2021",
     y = "Average Public Investments by million USD") +
-  theme_grey(12)
+  theme_grey(13)+
+  theme(strip.text.y = element_text(angle = 0, hjust = 1),
+        axis.text.x = element_text(angle = 45, hjust = 1))
 ```
 From the graph, we see that there is a lot of public investment in energy technology in South America comparing to all other continents. Especially with renewable hydropower, we can see that there might be a transition towards renewable hydropower in South America. In addition, we can see that in South America, Solar and Wind energy public investment are increasing as well. Another region that has more notable investment in technology is North America. We can see that it has investments in multiple renewable energy, as well as solar and wind energy. 
 
