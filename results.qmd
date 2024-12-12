@@ -1,1 +1,190 @@
 # Results
+
+```{r}
+library(tidyverse)
+library(ggplot2)
+library(dplyr)
+library(plotly)
+library(treemapify)
+```
+
+Is there any reduction in fossil fuel/carbon emissions globally or within different countries(territorial emissions)?
+
+To answer this question, we utilize the dataframe: df_territorialemissions 
+First, we renamed our columns of the dataset df_territorialemissions, and then we start transforming our data for further exploration in carbon emissions over time by country and by its continent. 
+
+We want to get continent information (from the National_Fossil_Carbon_Emissions dataset)
+```{r}
+df_continents <- read_excel("./raw_data/National_Fossil_Carbon_Emissions_2022v1.0.xlsx",
+                              sheet = 5,
+                              skip = 4)
+colnames(df_continents) <- c("Continent", "Country")
+
+df_continents <- df_continents |> 
+  separate_rows(Country, sep = ", ")
+```
+
+We join the continent information with our emissions data. 
+```{r}
+#df_territorialemissions <- df_territorialemissions |> 
+  #rename(Year = `...1`)
+
+investmentandemissions <- df_territorialemissions[1:220] |> 
+  pivot_longer(cols = Afghanistan:Zimbabwe, names_to = "Country", values_to = "CarbonEmission") |> 
+  left_join(df_continents, by = 'Country') |> drop_na()
+```
+
+After processing the data we have, we can now visualize the average Emissions over time from 1990 to 2021 by Continents comparing to the world average.
+```{r, fig.width = 10}
+avgemissions <- investmentandemissions |> 
+  filter(Year >= 1990) |> 
+  group_by(Continent, Year) |> 
+  summarize(averageemissions = mean(CarbonEmission, na.rm = TRUE), .groups = 'drop')
+
+worldemissions <- investmentandemissions |> 
+  filter(Year >= 1990) |> 
+  group_by(Year) |> 
+  summarize(averageemissions = mean(CarbonEmission, na.rm = TRUE), .groups = 'drop')
+
+avgandworldemissions <- avgemissions |> 
+  left_join(worldemissions, by = "Year") |> 
+  rename("averageemissions" = `averageemissions.x`) |> 
+  rename("worldavgemissions" = `averageemissions.y`) 
+
+ggplot(avgandworldemissions, aes(x = Year))+
+  geom_line(aes(y = averageemissions, color = "Region Average"))+
+  geom_line(aes(y = worldavgemissions, color = "World Average"))+
+  facet_wrap(~Continent)+
+  labs(title = "Average CO2 Emissions from 1990-2021 by Continent, Compared to World Average",
+       y = "CO2 emissions (in Million Tonnes)",
+       color = "World and Region Averages")+ 
+  theme_grey(14)
+```
+Overall, we can see that the average world emission is still slightly increasing throughout 1990 - 2021. The graph shows that the world's average Carbon emission is most largely contributed by Asia and North America. From the graph, we can see that the region average is significantly higher than the world average in both of these continents. Especially in Asia, we see a significant increase in carbon emissions through 1990 - 2021. There is a decrease in Carbon emission in Europe which crossed the world average at around 2008; it now produces less carbon than the average world emissions. There is a notable decrease in North America's carbon emission, although still high above average. The other regions such as South America and Middle East marks a increase while Oceania, Central America, and Africa stayed roughly the same from 1990 - 2021.
+
+We can continue by investigating the relationship between public investment on energy technology and carbon emissions.
+
+How does public investment in energy technology vary across regions/countries? 
+
+```{r}
+investmentovertime <- df_finance |> 
+  filter(Year >= 1990) |> 
+  rename(Public_Investment = `Public Investments (2021 million USD)`) |> 
+  rename(Country = `Country/area`) 
+```
+
+We know that there are a lot of zero values in our data, so we filter out the technologies that have more than 4000 0 values. The 0 values also means less investment in that particular techonology. Therefore, the technologies left are the most common investment aggregately around the world.
+
+```{r}
+filteredinvestmentovertime <- investmentovertime |> 
+  pivot_wider(names_from = Technology, values_from = Public_Investment) |> 
+  rename("Wind energy" = `Onshore wind energy`) |> 
+  rename("Fossil fuels" = `Fossil fuels n.e.s.`) |> 
+  rename("Other solid biofuels" = `Other primary solid biofuels n.e.s.`) |> 
+  rename("Solar Photovoltaic" = `On-grid Solar photovoltaic`) |> 
+  select(where(~ sum(. == 0) <= 4000)) |> 
+  pivot_longer(cols = 3:9, names_to = "Technology", values_to = "Public_Investment")
+```
+
+We now join the continent information with our data for public investment.
+```{r}
+mergedinvestmentdata <- filteredinvestmentovertime |> 
+  left_join(df_continents, by = 'Country') |> drop_na()
+```
+
+Now, we can start building our visualization. 
+```{r, fig.width = 12, fig.height = 7}
+mergedinvestmentdata |> 
+  group_by(Technology, Continent, Year) |> 
+  summarize(AveragePublicInvestment = mean(Public_Investment), .groups = "drop") |> 
+  ggplot(aes(x = Year, y = AveragePublicInvestment))+
+  geom_line()+
+  facet_grid(Continent ~ Technology) + 
+  labs(title = "Average Public Investments by Type of Technology and Continent from 1990 - 2021",
+    y = "Average Public Investments by million USD") +
+  theme_grey(12)
+```
+From the graph, we see that there is a lot of public investment in energy technology in South America comparing to all other continents. Especially with renewable hydropower, we can see that there might be a transition towards renewable hydropower in South America. In addition, we can see that in South America, Solar and Wind energy public investment are increasing as well. Another region that has more notable investment in technology is North America. We can see that it has investments in multiple renewable energy, as well as solar and wind energy. 
+
+Although we are able to look at a number of different relationships with this graph, we are unable to look closer to find exact numbers because of how many graphs there are. In addition, we had to filter out some energy technology because the data we have is very specific and some energy technology are very niche that there aren't a lot of data and investment on them. 
+
+Now, we can get the total public investment in renewable energy for each of these countries from the df_finance dataset.
+```{r}
+toppublicfinance <- df_finance |> 
+  filter(Year == 2021) |> 
+  rename(Public_Investment = `Public Investments (2021 million USD)`) |> 
+  rename(Country = `Country/area`) |> 
+  group_by(`Country`) |> 
+  summarize(Total_Public_Investment = sum(Public_Investment))
+```
+
+We join the two datasets to create the dataframe we want to analyze and make visualizations
+```{r}
+merged_data <- investmentandemissions |> 
+  filter(Year == 2021) |> 
+  left_join(toppublicfinance, by = 'Country') |> drop_na()
+```
+
+We will visualize the relationship between total public investment and carbon emission here.
+```{r}
+merged_data |> 
+  filter(CarbonEmission < 700) |> 
+  plot_ly(x = ~Total_Public_Investment, y = ~CarbonEmission,
+        color = ~as.factor(Continent), text= ~Country,
+        hoverinfo = 'text') |> 
+  layout(title = "Total Public Investment vs. Carbon Emission by Country by Region in 2021")
+```
+
+For better comparison side by side we also created a faceted scatterplot for the relationship between total public investment and carbon emissions.
+```{r}
+merged_data |> 
+  filter(CarbonEmission < 600) |> 
+  group_by(Continent) |> 
+  ggplot(aes(x = Total_Public_Investment, y = CarbonEmission)) + 
+  geom_point() +
+  facet_wrap(~Continent) + 
+  labs(title = "Total Public Investment vs. Carbon Emissions by in 2021",
+    x = "Total Public Investment",
+    y = "Carbon Emissions (in Million Tonnes)")
+```
+From the above two graphs that presents the same data, we can see that there aren't really a relationship between public investment and carbon emissions. An anomaly that we removed is China that has a really notable Carbon emission of 3000 million tonnes in 2021, which is significantly higher than all the other countries. Also, another notable country we omitted is India, with around 700 million tonnes in 2021. However, we can see that places with relatively high carbon emission don't really allocate a lot of public investment to energy. We can see this pattern from the relatively vertical point distributions. This shows that country's government need to put more effort for a transition to renewable energy in terms of allocating public investment for energy technology.
+
+Here we want to compare if there's any changes in 1990 and in 2021. We want to see if there's a difference in leading emissions country as well as if there are any changes in leaders of public investment in energy technology. We process our datafram here by adding the information from 1990.
+```{r}
+mergeddatafortree <- investmentandemissions |> 
+  filter(Year == 2021) |> 
+  left_join(toppublicfinance, by = 'Country') |> drop_na()
+
+toppublicfinancenine <- df_finance |> 
+  filter(Year == 2021) |> 
+  rename(Public_Investment = `Public Investments (2021 million USD)`) |> 
+  rename(Country = `Country/area`) |> 
+  group_by(`Country`) |> 
+  summarize(Total_Public_Investment = sum(Public_Investment))
+
+add <- investmentandemissions |> 
+  filter(Year == 1990) |> 
+  left_join(toppublicfinancenine, by = 'Country') |> drop_na()
+
+mergeddatafortree <- bind_rows(mergeddatafortree,add)
+```
+
+We now use our dataframe to plot a treemap that can visualize any changes.
+```{r}
+ggplot(mergeddatafortree, aes(area = CarbonEmission, fill = Total_Public_Investment, label = Country)) +
+  geom_treemap() +
+  geom_treemap_text(fontface = "italic", colour = "white", place = "centre",
+                    grow = TRUE)+
+  facet_wrap(~Year)+
+  labs(title = "Carbon Emissions and Public Investment by Countries in 1990 and 2021",
+       fill = "Investment (Million USD)") +
+  theme_grey(13)
+```
+The graph gives us a very clear visual of China continuing to dominate in CO2 emissions in 1990 and 2021. The proportion increased even more in 2021 than in 1990. An interesting thing we can see from the graph is how Germany fell off in 2021 as one of the top emitter in 1990. This suggests that there might be a connection between carbon emissions and the world war since there aren't that many public investment being made in the energy technology sector as shown by the graph. We can also see that India has become even larger emitter comparing to 1990. Also, something notable is that Brazil has always been a top public investor in energy technology, however, it is also consistently one of the bigger emitters in carbon. This might suggest that there aren't any relationship between public investment and carbon emission of a country. 
+
+Finally, comparing to our findings before, the graph also show that larger emitters don't really allocate a lot of public funds to energy technology. However, it is consistent with our line graphs that Brazil, being a country in South America, contributed to public investment towards energy technology by a lot. 
+
+A drawback of this graph is that we can't really label all the countries in the diagram because of how many countries there are. It would look really messy if all are labeled. In addition, we can't tell the actual number of emissions, just an idea/proportion of it. 
+
+
+
