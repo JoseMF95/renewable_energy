@@ -39,7 +39,7 @@ const years = [2018, 2019, 2020, 2021, 2022];
 // Object to store all datasets
 const datasets = {};
 
-// Function to load data for each character
+// Function to load data for each year
 years.forEach(year => {
   d3.csv(`${baseURL}world_stats_${year}.csv`, rowConverter)
     .then(function(data) {
