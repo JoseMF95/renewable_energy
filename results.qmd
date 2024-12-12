@@ -143,7 +143,7 @@ merged_data |>
   filter(CarbonEmission < 600) |> 
   group_by(Continent) |> 
   ggplot(aes(x = Total_Public_Investment, y = CarbonEmission)) + 
-  geom_point(alpha = 0.7, size = 0.9) +
+  geom_point(alpha = 0.7, pch = 21) +
   facet_wrap(~Continent) + 
   labs(title = "Total Public Investment vs. Carbon Emissions by in 2021",
     x = "Total Public Investment (in Million USD)",
