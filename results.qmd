@@ -340,7 +340,7 @@ From the above graph we can divide the results into several aspects to talk abou
 
 - Smaller, Emerging Sources: Sources like geothermal energy, liquid biofuels, and marine energy are growing slowly. They’re still minor contributors compared to solar and wind.
 
-# Proportional Graph for Energy Generation
+### Proportional Graph for Energy Generation
 
 To see proportional results clearer, we used a proportional stacked bar chart:
 
@@ -523,7 +523,7 @@ Let's upload our public investment data first
 df_finance <- read_csv("./raw_data/irena_finance.csv")
 ```
 
-## Public Investment in Energy Technology by Region
+### Public Investment in Energy Technology by Region
 
 ```{r}
 investmentovertime <- df_finance |> 
@@ -589,7 +589,7 @@ merged_data <- investmentandemissions |>
   left_join(toppublicfinance, by = 'Country') |> drop_na()
 ```
 
-## Public Investment in Energy Technology vs. Carbon Emission
+### Public Investment in Energy Technology vs. Carbon Emission
 
 Now we want to see if these public investment has a relationship with carbon emission.
 
