@@ -3,13 +3,14 @@
 Our project highlighted both the progress and challenges in the global shift to renewable energy. By analyzing global energy generation trends, investment patterns, and carbon emissions, we’ve gained valuable insights into the current status and where further work is needed.
 
 ## **Our Takeaways:**
--We observed a weak relationship between public investment in renewable energy and carbon emission reductions. For example, South America is a top investor in renewables but still remains a big carbon emitter. Meanwhile, high-emission countries like China and India allocate relatively little funds to renewable energy. This shows us the need for more strategic and impactful investment to truly drive change.
+- We observed a weak relationship between public investment in renewable energy and carbon emission reductions. For example, South America is a top investor in renewables but still remains a big carbon emitter. Meanwhile, high-emission countries like China and India allocate relatively little funds to renewable energy. This shows us the need for more strategic and impactful investment to truly drive change.
 
--We found that renewable energy, especially solar and wind power, have been growing rapidly since 2010, driving much of the transition, but fossil fuels are still the dominant source of energy worldwide and the pace of change varies across regions. The reliance on non-renewables has slowed down, but the shift isn’t happening quickly enough to meet climate targets. Carbon emissions is still a pressing issue for us.
+- We found that renewable energy, especially solar and wind power, have been growing rapidly since 2010, driving much of the transition, but fossil fuels are still the dominant source of energy worldwide and the pace of change varies across regions. The reliance on non-renewables has slowed down, but the shift isn’t happening quickly enough to meet climate targets. Carbon emissions is still a pressing issue for us.
 
 ## **Limitations:**
--In the process of our analysis, some energy technologies, such as geothermal, biofuels, marine have limited data, so it's difficult to fully assess their potential or growth. Additionally, some datasets, such as public investment figures, are incomplete for specific countries.
--While our analysis allowed us to identify general patterns, more in-depth analysis is required if we want to capture more country-specific nuances, such as unique policy impacts or what social and economic factors are influencing energy adoption.
+- In the process of our analysis, some energy technologies, such as geothermal, biofuels, marine have limited data, so it's difficult to fully assess their potential or growth. Additionally, some datasets, such as public investment figures, are incomplete for specific countries.
+
+- While our analysis allowed us to identify general patterns, more in-depth analysis is required if we want to capture more country-specific nuances, such as unique policy impacts or what social and economic factors are influencing energy adoption.
 
 ## **Lessons Learned and Directions:**
 
