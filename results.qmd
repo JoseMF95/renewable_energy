@@ -1,6 +1,7 @@
 # Results
 
 ```{r}
+library(readxl)
 library(tidyverse)
 library(ggplot2)
 library(dplyr)
@@ -26,9 +27,6 @@ df_continents <- df_continents |>
 
 We join the continent information with our emissions data. 
 ```{r}
-df_territorialemissions <- df_territorialemissions |> 
-  rename(Year = `...1`)
-
 investmentandemissions <- df_territorialemissions[1:220] |> 
   pivot_longer(cols = Afghanistan:Zimbabwe, names_to = "Country", values_to = "CarbonEmission") |> 
   left_join(df_continents, by = 'Country') |> drop_na()
@@ -134,7 +132,9 @@ merged_data |>
   plot_ly(x = ~Total_Public_Investment, y = ~CarbonEmission,
         color = ~as.factor(Continent), text= ~Country,
         hoverinfo = 'text') |> 
-  layout(title = "Total Public Investment vs. Carbon Emission by Country by Region in 2021")
+  layout(title = "Total Public Investment vs. Carbon Emission by Country by Region in 2021",
+         xaxis = list(title = "Total Public Investment (in Million USD)"),  
+    yaxis = list(title = "Carbon Emissions (in Million Tonnes)"))
 ```
 
 For better comparison side by side we also created a faceted scatterplot for the relationship between total public investment and carbon emissions.
@@ -143,11 +143,12 @@ merged_data |>
   filter(CarbonEmission < 600) |> 
   group_by(Continent) |> 
   ggplot(aes(x = Total_Public_Investment, y = CarbonEmission)) + 
-  geom_point() +
+  geom_point(alpha = 0.7, size = 0.9) +
   facet_wrap(~Continent) + 
   labs(title = "Total Public Investment vs. Carbon Emissions by in 2021",
-    x = "Total Public Investment",
-    y = "Carbon Emissions (in Million Tonnes)")
+    x = "Total Public Investment (in Million USD)",
+    y = "Carbon Emissions (in Million Tonnes)")+
+  theme_grey(15)
 ```
 From the above two graphs that presents the same data, we can see that there aren't really a relationship between public investment and carbon emissions. An anomaly that we removed is China that has a really notable Carbon emission of 3000 million tonnes in 2021, which is significantly higher than all the other countries. Also, another notable country we omitted is India, with around 700 million tonnes in 2021. However, we can see that places with relatively high carbon emission don't really allocate a lot of public investment to energy. We can see this pattern from the relatively vertical point distributions. This shows that country's government need to put more effort for a transition to renewable energy in terms of allocating public investment for energy technology.
 
