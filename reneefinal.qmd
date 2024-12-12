@@ -1,0 +1,649 @@
+# Results
+
+```{r}
+library(readxl)
+library(tidyverse)
+library(ggplot2)
+library(dplyr)
+library(plotly)
+library(treemapify)
+library(redav)
+library(forcats)
+```
+
+## Carbon Emission Trend
+
+Carbon Emission is largely related to global warming and climate change. It is the central reason why we want to put emphasis on transitioning into renewable energy. Now, we can first analyze the global and regional emissions of carbon over the years from 1990 to 2021.
+
+First, we renamed our columns of the dataset: df_territorialemissions, and then we start transforming our data for further exploration in carbon emissions over time by country and by its continent. Here, we also want to get continent information which is provided on a separate sheet (from the National_Fossil_Carbon_Emissions dataset)
+
+```{r}
+#read emissions data
+df_territorialemissions <- read_excel("./raw_data/National_Fossil_Carbon_Emissions_2022v1.0.xlsx",
+                              sheet = 2,
+                              skip = 11)
+
+#modify column names
+df_territorialemissions <- df_territorialemissions |> 
+  rename(Year = `...1`)
+
+#read continent data
+df_continents <- read_excel("./raw_data/National_Fossil_Carbon_Emissions_2022v1.0.xlsx",
+                              sheet = 5,
+                              skip = 4)
+
+#modify column names and process excel data into readable data
+colnames(df_continents) <- c("Continent", "Country")
+df_continents <- df_continents |> 
+  separate_rows(Country, sep = ", ")
+
+#join the two datasets by the Country
+investmentandemissions <- df_territorialemissions[1:220] |> 
+  pivot_longer(cols = Afghanistan:Zimbabwe, names_to = "Country", values_to = "CarbonEmission") |> 
+  left_join(df_continents, by = 'Country') |> drop_na()
+
+```
+
+After processing the data we have, we can now visualize the average Emissions over time from 1990 to 2021 by Continents comparing to the world average.
+
+```{r, fig.width = 10}
+
+#get 1990 Average Emissions data around the world
+avgemissions <- investmentandemissions |> 
+  filter(Year >= 1990) |> 
+  group_by(Continent, Year) |> 
+  summarize(averageemissions = mean(CarbonEmission, na.rm = TRUE), .groups = 'drop')
+
+#get world average emission data (don't group by Continent)
+worldemissions <- investmentandemissions |> 
+  filter(Year >= 1990) |> 
+  group_by(Year) |> 
+  summarize(averageemissions = mean(CarbonEmission, na.rm = TRUE), .groups = 'drop')
+
+#join the two datasets
+avgandworldemissions <- avgemissions |> 
+  left_join(worldemissions, by = "Year") |> 
+  rename("averageemissions" = `averageemissions.x`) |> 
+  rename("worldavgemissions" = `averageemissions.y`) 
+
+#plot the two lines on the same graph and facet by Continent
+ggplot(avgandworldemissions, aes(x = Year))+
+  geom_line(aes(y = averageemissions, color = "Region Average"))+
+  geom_line(aes(y = worldavgemissions, color = "World Average"))+
+  facet_wrap(~Continent)+
+  labs(title = "Average CO2 Emissions from 1990-2021 by Continent, Compared to World Average",
+       y = "CO2 emissions (in Million Tonnes)",
+       color = "World and Region Averages")+ 
+  theme_grey(14)
+```
+
+Overall, we can see that the average world emission is still slightly increasing throughout 1990 - 2021. The graph shows that the world's average Carbon emission is most largely contributed by Asia and North America. From the graph, we can see that the region average is significantly higher than the world average in both of these continents. Especially in Asia, we see a significant increase in carbon emissions through 1990 - 2021. There is a decrease in Carbon emission in Europe which crossed the world average at around 2008; it now produces less carbon than the average world emissions. There is a notable decrease in North America's carbon emission, although still high above average. The other regions such as South America and Middle East marks a increase while Oceania, Central America, and Africa stayed roughly the same from 1990 - 2021.
+
+Overall, despite efforts to promote greener living, there seems to be not much progress in climate change around the world.This leads us to wonder if we can observe any changes in pattern of electricity generation, usage, and public investment throughout the years.
+
+## Electricity Generation
+
+Electricity is an important factor contributing to climate change. The traditional fossil fuel electricity generation process produces a lot of carbon emission. The proposed solution is to transition to renewable energy technology such as solar, wind, and many others. To evaluate the changes, we aim to analyze the changes in energy generation patterns throughout the years.
+
+### By Renewable and Non-Renewable Energy Sources
+
+First, we consider a general category of renewable and non-renewable energy sources for energy generation technology.
+```{r}
+# read data
+df_statsregion <-read.csv('./raw_data/irena_electstats_region.csv')
+
+# change Electricity statistics to numeric
+df_statsregion$Electricity.statistics <- as.numeric(df_statsregion$Electricity.statistics)
+```
+
+```{r}
+df_world_total <- df_statsregion |> 
+  filter(
+    Region=="World",
+    str_detect(Data.Type,"(GWh)"),
+    str_detect(Technology,"Total"),
+    Year < 2023
+    )
+
+df_world_total |> 
+  mutate(Electricity.statistics = 
+           Electricity.statistics/1000) |> 
+  ggplot(aes(
+    x=factor(Year),
+    y=Electricity.statistics,
+    fill=Technology)
+  ) +
+  geom_col() +
+  scale_fill_discrete("")+
+  xlab("Year") +
+  ylab("Electricity Generation\n(in thousands GWh)") +
+  ggtitle(paste0(
+    "World's total Electricity Generation",
+    "\nper source")) +
+  theme_bw() +
+  theme(
+    axis.text.x = element_text(
+      angle = 90,
+      vjust = 0.5, 
+      hjust=1),
+    legend.position="bottom") 
+```
+
+In the above graph we observe an increase in the electricity generation across 2000-2022 overall energy consumption and for both non-renewable and renewable sources. Non-renewable energy continues to occupy a larger proportion of energy generation.
+
+### By Regional Renewable and Non-Renewable Energy Sources
+
+From previous graph we observed an increasing adoption for energy generation technologies in the world. To analyze patterns more specifically, we can compare how non-renewable and renewable energy generation differ from total energy comsumption by region.
+
+```{r}
+df_region_total <- df_statsregion |> 
+  filter(
+    Region!="World",
+    str_detect(Data.Type,"(GWh)"),
+    str_detect(Technology,"Total"),
+    Year < 2023
+    )
+
+df_region_total |> 
+    pivot_wider(
+        names_from=Technology,
+        values_from = Electricity.statistics
+    ) |> 
+    mutate(`Total (both sources)` = rowSums(
+        across(starts_with("Total"))
+        )
+    ) |> 
+    group_by(Region) |> 
+    mutate(across(starts_with('Total'),~.x/lag(.x)-1)) |> 
+    ungroup() |> 
+    filter(Year > 2001) |> 
+    pivot_longer(cols = starts_with("Total")) |> 
+    mutate(Region = ifelse(
+        str_detect(Region,"Central"),
+        "Central America",
+        Region)
+    ) |> 
+    group_by(Region,name) |>
+    summarise(median = median(value),.groups = "drop") |> 
+    ggplot(aes(x=fct_reorder2(Region,name,-median),y=median,col=name)) +
+    geom_point(alpha=0.7) +
+    scale_color_discrete("") +
+    scale_y_continuous(
+        "% change",
+        labels=scales::percent_format()) +
+    xlab("") +
+    ggtitle(paste0(
+    "Median Electricity Generation Change", 
+    "\nby Region (2001-2022)"))+
+    coord_flip() +
+    theme_bw() +
+    theme(legend.position="bottom")
+```
+
+Total renewable electricity generation rate higher than non-renewable hold for almost all regions in the analyzed timeframe (except Eurasia). For Europe and North America non-renewable have a negative rate, but the Total is still positive (mainly driven by renewable).
+
+### By YOY Changes
+
+we can also further this analysis by analyzing YoY changes to assess whether if energy generation sources have similar change rates or if either has one is increasing more than other.
+
+```{r}
+df_world_total |> 
+    pivot_wider(
+        names_from = Technology,
+        values_from = Electricity.statistics
+        ) |> 
+    mutate(`Total (both sources)` = rowSums(
+        across(starts_with("Total"))
+        )
+    ) |> 
+    mutate(across(starts_with('Total'),~.x/lag(.x)-1)) |>
+    filter(Year > 2001) |> 
+    pivot_longer(cols = starts_with("Total")) |> 
+    ggplot(aes(
+        x=fct_reorder(name,-value,.na_rm=TRUE),
+        y=value)
+    ) +
+    geom_boxplot() +
+    scale_y_continuous(
+      "% change",
+      labels=scales::percent_format()) +
+    theme_bw() +
+    xlab("") +
+    ggtitle(paste0("Electricity Generation Change YoY", 
+    "\nby source (2001-2022)"))
+```
+
+Boxplots show us that even though renewable and non-renewable have increased across the years the increase rate is higher for renewable energy. For a more specific example, we observed that in 2020 (during Covid19), non-renewable had a decrease of 2.6% YoY whereas renewable presented a 6.6% increase YoY, this gives us a general indication of renewable energies adoption.
+
+### Energy Generation Changes from 2000 to 2022
+
+To show the YOY changes even clearer and finding energy adoption trends, we deploy line graphs. We now break down different types of energy into smaller categories as given by our data.
+
+```{r}
+
+#read in data and preprocessing
+df_country <- read.csv("./raw_data/irena_electstats_country.csv")
+
+df_country$Electricity.statistics <- as.numeric(df_country$Electricity.statistics)
+
+df_country <- df_country |> 
+    rename(Electricity_Stats=Electricity.statistics) |> 
+    mutate(Electricity_Stats=Electricity_Stats/1e3) 
+
+generation_trends <- df_country |> 
+  filter(Data.Type == "Electricity Generation (GWh)",
+         Grid.connection == "All",
+         !(Technology %in% c('Total Renewable',
+                            'Total Non-Renewable'))) |> 
+  filter(Year != 2023) |> 
+  group_by(Year, Technology) |> 
+  summarise(Total_Generation = sum(
+    Electricity_Stats, na.rm = TRUE), .groups = "drop"
+  )
+```
+
+After preprocessing the data, we can generate the line graph to see the total energy generation by energy technology over time.
+
+```{r}
+#| fig-height: 8
+ggplot(generation_trends, aes(x = Year,
+           y = Total_Generation, 
+           col = Technology)
+       ) +
+  geom_line() +
+  labs(title = paste0(
+    "Energy Generation Trends",
+    " by Source Over Years"),
+     x = "Year", 
+    y = "Energy Generation (in thousands GWh)") +
+  theme_grey(15.5)+
+  theme(legend.position="bottom")
+```
+
+From this graph, we can tell that fossil fuel electricity generation continue to dominate. There is also an increasing trend of energy generation with fossil fules from 2000 to 2022. However, this graph is too specific. It is a bit hard to tell what the overall trend is with the newer energy sources since it's crowded at the bottom of the graph.
+
+### Grouping Energy Sources
+
+To resolve this, we group similar energy categories together and generate a new column for these generalized groups to make the above line graph clearer. We get the resulting graph:
+
+```{r}
+#| fig-height: 5.5
+gp_generation_trends <- df_country |> 
+  filter(Data.Type == "Electricity Generation (GWh)",
+         Grid.connection == "All",
+         !(Technology %in% c('Total Renewable',
+                            'Total Non-Renewable'))) |>
+  mutate(Grouped_Technology = 
+          case_when(
+            Technology %in% c("Solar thermal energy",
+                              "Solar photovoltaic") ~
+              "Solar energy",
+            Technology %in% c("Offshore wind energy",
+                              "Onshore wind energy") ~
+              "Wind energy",
+            Technology %in% c("Renewable hydropower",
+                              "Mixed Hydro Plants") ~
+              "Hydropower",
+            Technology %in% c("Solid biofuels",
+                              "Renewable municipal waste",
+                              "Liquid biofuels",
+                              "Biogas") ~ 
+              "Bioenergy",
+            Technology %in% c("Coal and peat",
+                              "Oil",
+                              "Natural gas",
+                              "Fossil fuels n.e.s.") ~
+              "Fossil fuels",
+    TRUE ~ Technology  # to keep other technologies unchanged
+  ))
+
+gp_generation_trends  <- gp_generation_trends |> 
+  filter(Year != 2023) |> 
+  group_by(Year, Grouped_Technology) |> 
+  summarise(Total_Generation = 
+              sum(Electricity_Stats, na.rm = TRUE)
+            )
+custom_colors <- c(
+  "Solar energy" = "#FFFF33", 
+  "Wind energy" =  "#8DA0CB", 
+  "Hydropower" = "#00BFC4",
+  "Fossil fuels" = "#D65F5F",
+  "Nuclear" = "#FFB300", 
+  "Geothermal energy" = "#F8766D",  
+  "Marine energy" =  "#66C2A5", 
+  "Pumped storage" = "#8C6BB1", 
+  "Bioenergy" = "#1C9099"
+)
+
+ggplot(gp_generation_trends, aes(x = Year, y = Total_Generation, color = Grouped_Technology)) +
+  geom_line() +
+  scale_color_manual(values = custom_colors) +
+  labs(title = paste0(
+  "Energy Generation Trends",
+  " by Grouped Source"),
+   x = "Year", 
+   y = "Energy Generation (in thousands GWh)", 
+   color = "Energy Source") +
+  theme_grey(13) +
+  theme(legend.position="bottom")
+```
+
+From the above graph we can divide the results into several aspects to talk about the key findings:
+
+-Dominance of Non-Renewable Sources: We can see that the category "Total Non-Renewable" still remains the largest contributor to energy generation throughout the timeline. This shows our continued reliance on fossil fuels and related energy sources. However, its growth appears to slow down in recent years, and there might even be signs of a slight decline.
+
+-Renewable Energy is growing: Renewable energy has been growing steadily, especially since 2010. This suggests that renewable sources are becoming a much bigger part of the global energy mix.
+
+-Wind and Solar Energy is Expanding Rapidly: Among renewable sources, Wind Energy and shows the fastest growth, particularly after 2010. Solar energy also has a large growth. This reflects increased adoption of solar and wind technology globally. This gives us a direction to research further on their energy advancements and cost reductions of adopting these energy sources.
+
+-Smaller, Emerging Sources: Sources like geothermal energy, liquid biofuels, and marine energy are growing slowly. They’re still minor contributors compared to solar and wind.
+
+# Proportional Graph for Energy Generation
+
+To see proportional results clearer, we used a proportional stacked bar chart:
+
+```{r}
+#| fig-width: 10
+gp_generation_trends <- gp_generation_trends %>%
+  group_by(Year) %>%
+  mutate(Proportion = Total_Generation / sum(Total_Generation))
+
+gp_generation_trends |> 
+  ggplot(aes(x = Year, y = Proportion, fill = fct_reorder(Grouped_Technology, Proportion))) +
+  geom_col() +
+  scale_fill_manual(values = custom_colors, name = "Energy Source")+
+  labs(title = paste0(
+  "Energy Generation Trend by Grouped Source"),
+   x = "Year", 
+   y = "Energy Generation Proportion") +
+  theme_grey(15) +
+  theme(legend.position="bottom")
+```
+
+Consistent with the result above, fossil fuel for electricity generation have decreased slightly over the years. It is also clear that we are adopting renewable technology energy such as solar, wind and hydropower. This is consistent with the result of the line graph above. It shows that we are indeed decreasing our reliance on non-renewable type of energy generation.
+
+In general, when observing electricity generation patterns, we can see that energy generation have been increasing which indicates an increase in demand for energy. In addition, we find that traditional fossil fuel energy generation method have been decreasing, instead, renewable energy generation method have been on the rise. The leading renewable energy that have notable increases are hydropower, solar energy, and wind energy.
+
+## Renewable Energy Generation Capacity
+
+Now that we have an overview of energy consumption by Renewable and Non-Renewable sources, let's deep dive into renewable energy generation capacity. Energy generation capacity reveals the potential of deploying the particular energy as a replacement for non-renewable energy sources.
+
+```{r}
+#| fig-width: 10
+# review global trends
+df_world <- df_statsregion |> 
+  filter(Region=='World')
+
+renewable_energies <- c('Solar','Wind','Hydro','Marine','Bio','Geo')
+
+# graph share per data type and technology
+df_world |> 
+    filter(str_detect(
+        Technology,
+        paste0("^",renewable_energies,".*$",collapse="|")
+        )
+    ) |> 
+    filter(Year < 2023) |> 
+    group_by(Year,Data.Type) |> 
+    mutate(prop = Electricity.statistics
+           /sum(Electricity.statistics,na.rm=TRUE)) |> 
+    mutate(Year = factor(Year)) |> 
+    mutate(Technology = str_extract(Technology,"^[^ ]+")) |>
+    ggplot(aes(
+      x=Year,
+      y=prop,
+      group=Technology,
+      col=Technology)
+    ) +
+    geom_line() +
+    scale_y_continuous(
+      "Share %",
+      labels=scales::percent_format()) +
+    facet_wrap(.~Data.Type) +
+    theme_bw() +
+    theme(
+      axis.text.x = element_text(
+        angle = 90,
+        vjust = 0.5, 
+        hjust=1),
+      legend.position="bottom") +
+    ggtitle(paste0(
+      "World's Share of Electricity", 
+      " Generation and \nInstalled Capacity ", 
+      "per Renewable Energy")
+    ) +
+  theme_grey(13) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+Since 2000 Hydropower has been the primary renewable energy technology in the world. Nonetheless, we observe that Wind and Solar energy are gaining relevance since they contribute more and more to the share of Electricity Generation and Installed Capacity.
+
+We can further our analysis by assessing regional patterns. The following graph presents the latest trends in renewable source technologies given the data in 2022.
+```{r}
+df_region <- df_statsregion |> 
+  filter(Region!='World')
+
+
+df_region|> 
+  filter(str_detect(
+    Technology,
+    paste0("^",renewable_energies,".*$",collapse="|")
+    )
+  ) |> 
+  filter(
+    Year == 2023,
+    str_detect(Data.Type,"(MW)")
+  ) |> 
+  mutate(Electricity.statistics=Electricity.statistics/1e3) |> 
+  mutate(Technology = str_extract(Technology,"^[^ ]+")) |>
+  mutate(Region = ifelse(
+    str_detect(Region,"Central"),
+    "Central America",
+    Region)
+  ) |> 
+  ggplot(aes(
+    x=fct_reorder(
+      Region,
+      Electricity.statistics,
+      .na_rm=TRUE),
+    y=Electricity.statistics,
+    col=Technology)
+  ) +
+  geom_point(alpha=0.8,size=2) +
+  xlab("Region")+
+  ylab("Electricity Installed Capacity (in thousands MW)") +
+  ggtitle(paste0(
+  "Electricity Installed Capacity", 
+  "\nper Region in 2022")
+  ) +
+  coord_flip() +
+  theme_bw() +
+  theme(legend.position="bottom") 
+```
+Most regions have Hydropower as the technology with most electricity installed capacity. This pattern is different for Asia and Europe where Solar energy is the predominant one. For most regions all renewable energy technologies are close in terms of installed capacity, except for Asia, Europe and North America where Hydropower, Solar and Wind deviate significantly from others.
+
+This is consistent with our previous analysis on electricity generation. We mentioned that Solar, Wind and Hydropower adoption increased the most, the high installed capacity of each technology might explain this increase.
+
+The previous graph shows that Asia and Europe skews the distribution to the right due to their magnitude. In order to make a fair comparison, let's analyze this pattern using change rate. For this case, we will analyze how electricity installed capacity changed from 2017 to 2022 (% change).
+
+```{r}
+#| fig-width: 10
+df_region_5y <- df_region |> 
+    filter(str_detect(
+        Technology,
+        paste0("^",renewable_energies,".*$",collapse="|")
+    )
+    ) |> 
+    filter(
+        Year %in% c(2017,2022),
+        str_detect(Data.Type,"(MW)")
+    ) |> 
+    mutate(Technology = str_extract(Technology,"^[^ ]+")) |>
+    mutate(Region = ifelse(
+        str_detect(Region,"Central"),
+        "Central America",
+        Region)
+    ) |> 
+    group_by(Region,Technology) |> 
+    mutate(delta = Electricity.statistics/
+             lag(Electricity.statistics)-1) |> 
+  ungroup() |> 
+  mutate(delta=ifelse(is.na(delta),0,delta)) |> 
+  filter(Year == 2022) |> 
+  select(-Electricity.statistics) |> 
+  pivot_wider(
+    names_from='Technology',
+    values_from = 'delta') |> 
+  select(-c(Marine,Data.Type,Year))
+
+draw_biplot(df_region_5y,arrows = TRUE) +
+  ggtitle(paste0(
+    "Biplot Electricity Installed Capacity",
+    " per Region")
+  )
+```
+We observe that despite Asia, Europe and North America present high values for Solar and Wind technologies when we change to percentage increase South America takes the lead (\>800% Solar and \>100% Wind increase respectively), followed by Middle East (\>500% Solar and \>200% Wind increase respectively). Africa increased by 17% its Hydropower's electricity installed capacity. For Geothermal, South America takes the lead with a \>100% increase in electricity installed capacity from 2017 to 2022.
+
+The biplot graph shows that big magnitudes potentially overshadow interesting trends against other categories with relatively smaller amounts. The multivariate setting of biplot visualization allows us to plot percentage changes and create indexes.
+
+In general, we find that energy generation capacity matches our expectation in energy generation. The top renewable generation adoption: Solar, Wind, and Hydropower are matched by its installed capacity. We can also observe regional patterns such as Asia focusing more on Solar and Wind, while Africa focusing more on Hydropower.
+
+## Public Investment
+
+We can continue by investigating the relationship between public investment on energy energy generation and carbon emissions.
+
+Let's upload our public investment data first
+```{r}
+df_finance <- read_csv("./raw_data/irena_finance.csv")
+```
+## Public Investment in Energy Technology by Region
+```{r}
+investmentovertime <- df_finance |> 
+  filter(Year >= 1990) |> 
+  rename(Public_Investment = `Public Investments (2021 million USD)`) |> 
+  rename(Country = `Country/area`) 
+```
+
+We know that there are a lot of zero values in our data, so we filter out the technologies that have more than 4000 0 values. The 0 values also means less investment in that particular techonology. Therefore, the technologies left are the most common investment aggregately around the world.
+
+```{r}
+filteredinvestmentovertime <- investmentovertime |> 
+  pivot_wider(names_from = Technology, values_from = Public_Investment) |> 
+  rename("Wind energy" = `Onshore wind energy`) |> 
+  rename("Fossil fuels" = `Fossil fuels n.e.s.`) |> 
+  rename("Other solid biofuels" = `Other primary solid biofuels n.e.s.`) |> 
+  rename("Solar Photovoltaic" = `On-grid Solar photovoltaic`) |> 
+  select(where(~ sum(. == 0) <= 4000)) |> 
+  pivot_longer(cols = 3:9, names_to = "Technology", values_to = "Public_Investment")
+```
+
+We now join the continent information with our data for public investment.
+
+```{r}
+mergedinvestmentdata <- filteredinvestmentovertime |> 
+  left_join(df_continents, by = 'Country') |> drop_na()
+```
+
+```{r, fig.width = 12, fig.height = 7}
+mergedinvestmentdata |> 
+  group_by(Technology, Continent, Year) |> 
+  summarize(AveragePublicInvestment = mean(Public_Investment), .groups = "drop") |> 
+  ggplot(aes(x = Year, y = AveragePublicInvestment))+
+  geom_line()+
+  facet_grid(Continent ~ Technology) + 
+  labs(title = "Average Public Investments by Type of Technology and Continent from 1990 - 2021",
+    y = "Average Public Investments by million USD") +
+  theme_grey(13)+
+  theme(strip.text.y = element_text(angle = 0, hjust = 1),
+        axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+From the graph, we see that there is a lot of public investment in energy technology in South America comparing to all other continents. Especially with renewable hydropower, we can see that there might be a transition towards renewable hydropower in South America. This is consistent with out previous analysis. In addition, we can see that in South America, Solar and Wind energy public investment are increasing as well. Another region that has more notable investment in technology is North America. We can see that it has investments in multiple renewable energy, as well as solar and wind energy.
+
+Although we are able to look at a number of different relationships with this graph, we are unable to look closer to find exact numbers because of how many graphs there are. In addition, we had to filter out some energy technology because the data we have is very specific and some energy technology are very niche that there aren't a lot of data and investment on them.
+
+Now, we can get the total public investment in renewable energy for each of these countries from the df_finance dataset.
+```{r}
+toppublicfinance <- df_finance |> 
+  filter(Year == 2021) |> 
+  rename(Public_Investment = `Public Investments (2021 million USD)`) |> 
+  rename(Country = `Country/area`) |> 
+  group_by(`Country`) |> 
+  summarize(Total_Public_Investment = sum(Public_Investment))
+```
+
+We join the two datasets to create the dataframe we want to analyze and make visualizations
+
+```{r}
+merged_data <- investmentandemissions |> 
+  filter(Year == 2021) |> 
+  left_join(toppublicfinance, by = 'Country') |> drop_na()
+```
+
+## Public Investment in Energy Technology vs. Carbon Emission
+
+Now we want to see if these public investment has a relationship with carbon emission.
+```{r}
+merged_data |> 
+  filter(CarbonEmission < 700) |> 
+  plot_ly(x = ~Total_Public_Investment, y = ~CarbonEmission,
+        color = ~as.factor(Continent), text= ~Country,
+        hoverinfo = 'text') |> 
+  layout(title = "Total Public Investment vs. Carbon Emission by Country by Region in 2021",
+         xaxis = list(title = "Total Public Investment (in Million USD)"),  
+    yaxis = list(title = "Carbon Emissions (in Million Tonnes)"))
+```
+
+For better comparison side by side we also created a faceted scatterplot for the relationship between total public investment and carbon emissions.
+
+```{r}
+merged_data |> 
+  filter(CarbonEmission < 600) |> 
+  group_by(Continent) |> 
+  ggplot(aes(x = Total_Public_Investment, y = CarbonEmission)) + 
+  geom_point(alpha = 0.7, pch = 21) +
+  facet_wrap(~Continent) + 
+  labs(title = "Total Public Investment vs. Carbon Emissions by in 2021",
+    x = "Total Public Investment (in Million USD)",
+    y = "Carbon Emissions (in Million Tonnes)")+
+  theme_grey(15)
+```
+
+From the above two graphs that presents the same data, we can see that there aren't really a relationship between public investment and carbon emissions. An anomaly that we removed is China that has a really notable Carbon emission of 3000 million tonnes in 2021, which is significantly higher than all the other countries. Also, another notable country we omitted is India, with around 700 million tonnes in 2021. However, we can see that places with relatively high carbon emission don't really allocate a lot of public investment to energy. We can see this pattern from the relatively vertical point distributions. This shows that country's government need to put more effort for a transition to renewable energy in terms of allocating public investment for energy technology.
+
+Here we want to compare if there's any changes in 1990 and in 2021. We want to see if there's a difference in leading emissions country as well as if there are any changes in leaders of public investment in energy technology. We process our datafram here by adding the information from 1990.
+
+```{r}
+mergeddatafortree <- investmentandemissions |> 
+  filter(Year == 2021) |> 
+  left_join(toppublicfinance, by = 'Country') |> drop_na()
+
+toppublicfinancenine <- df_finance |> 
+  filter(Year == 2021) |> 
+  rename(Public_Investment = `Public Investments (2021 million USD)`) |> 
+  rename(Country = `Country/area`) |> 
+  group_by(`Country`) |> 
+  summarize(Total_Public_Investment = sum(Public_Investment))
+
+add <- investmentandemissions |> 
+  filter(Year == 1990) |> 
+  left_join(toppublicfinancenine, by = 'Country') |> drop_na()
+
+mergeddatafortree <- bind_rows(mergeddatafortree,add)
+```
+
+We now use our dataframe to plot a treemap that can visualize any changes of public investment in 1990 vs. 2021 as well as if there's any reduction of carbon emission per country.
+```{r}
+ggplot(mergeddatafortree, aes(area = CarbonEmission, fill = Total_Public_Investment, label = Country)) +
+  geom_treemap() +
+  geom_treemap_text(fontface = "italic", colour = "white", place = "centre",
+                    grow = TRUE)+
+  facet_wrap(~Year)+
+  labs(title = "Carbon Emissions and Public Investment by Countries in 1990 and 2021",
+       fill = "Investment (Million USD)") +
+  theme_grey(13)
+```
+The graph gives us a very clear visual of China continuing to dominate in CO2 emissions in 1990 and 2021. The proportion increased even more in 2021 than in 1990. An interesting thing we can see from the graph is how Germany fell off in 2021 as one of the top emitter in 1990. This suggests that there might be a connection between carbon emissions and the world war since there aren't that many public investment being made in the energy technology sector as shown by the graph. We can also see that India has become even larger emitter comparing to 1990. Also, something notable is that Brazil has always been a top public investor in energy technology, however, it is also consistently one of the bigger emitters in carbon. This might suggest that there aren't any relationship between public investment and carbon emission of a country.
+
+Finally, comparing to our findings before, the graph also show that larger emitters don't really allocate a lot of public funds to energy technology. However, it is consistent with our line graphs that Brazil, being a country in South America, contributed to public investment towards energy technology by a lot.
+
+A drawback of this graph is that we can't really label all the countries in the diagram because of how many countries there are. It would look really messy if all are labeled. In addition, we can't tell the actual number of emissions, just an idea/proportion of it.
