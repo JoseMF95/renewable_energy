@@ -10,6 +10,124 @@ library(treemapify)
 library(redav)
 ```
 
+For this analysis we want to observe if there is any changes in energy generation patterns throughout the years
+
+```{r}
+df_country <- read.csv("./raw_data/irena_electstats_country.csv")
+
+df_country$Electricity.statistics <- as.numeric(df_country$Electricity.statistics)
+
+df_country <- df_country |> 
+    rename(Electricity_Stats=Electricity.statistics) |> 
+    mutate(Electricity_Stats=Electricity_Stats/1e3) 
+
+generation_trends <- df_country |> 
+  filter(Data.Type == "Electricity Generation (GWh)",
+         Grid.connection == "All",
+         !(Technology %in% c('Total Renewable',
+                            'Total Non-Renewable'))) |> 
+  group_by(Year, Technology) |> 
+  summarise(Total_Generation = sum(
+    Electricity_Stats, na.rm = TRUE)
+  )
+```
+
+Generate the line chart to see the total energy generation by source over time.
+
+```{r}
+#| fig-height: 7
+ggplot(generation_trends, aes(x = Year,
+           y = Total_Generation, 
+           col = Technology)
+       ) +
+  geom_line() +
+  labs(title = paste0(
+    "Energy Generation Trends",
+    " by Source Over Years"),
+     x = "Year", 
+    y = "Energy Generation (in thousands GWh)") +
+  theme_bw() +
+  theme(legend.position="bottom")
+  
+  
+```
+It is a bit hard to tell the overall trend since we have a lot of types of energy sources. 
+
+Thus, we group the similar categories together first and generate a new column for grouped sources to make the graph we are going to plot in the next step clearer.
+
+```{r}
+#| fig-height: 7
+gp_generation_trends <- df_country |> 
+  filter(Data.Type == "Electricity Generation (GWh)",
+         Grid.connection == "All",
+         !(Technology %in% c('Total Renewable',
+                            'Total Non-Renewable'))) |>
+  mutate(Grouped_Technology = 
+          case_when(
+            Technology %in% c("Solar thermal energy",
+                              "Solar photovoltaic") ~
+              "Solar energy",
+            Technology %in% c("Offshore wind energy",
+                              "Onshore wind energy") ~
+              "Wind energy",
+            Technology %in% c("Renewable hydropower",
+                              "Mixed Hydro Plants") ~
+              "Hydropower",
+            Technology %in% c("Solid biofuels",
+                              "Renewable municipal waste",
+                              "Liquid biofuels",
+                              "Biogas") ~ 
+              "Bioenergy",
+            Technology %in% c("Coal and peat",
+                              "Oil",
+                              "Natural gas",
+                              "Fossil fuels n.e.s.") ~
+              "Fossil fuels",
+    TRUE ~ Technology  # to keep other technologies unchanged
+  ))
+
+gp_generation_trends  <- gp_generation_trends |> 
+  group_by(Year, Grouped_Technology) |> 
+  summarise(Total_Generation = 
+              sum(Electricity_Stats, na.rm = TRUE)
+            )
+custom_colors <- c(
+  "Solar energy" = "#FFFF33", 
+  "Wind energy" =  "#8DA0CB", 
+  "Hydropower" = "#00BFC4",
+  "Fossil fuels" = "#D65F5F",
+  "Nuclear" = "#FFB300", 
+  "Geothermal energy" = "#F8766D",  
+  "Marine energy" =  "#66C2A5", 
+  "Pumped storage" = "#8C6BB1", 
+  "Bioenergy" = "#1C9099"
+)
+
+ggplot(gp_generation_trends, aes(x = Year, y = Total_Generation, color = Grouped_Technology)) +
+  geom_line() +
+  scale_color_manual(values = custom_colors) +
+  labs(title = paste0(
+  "Energy Generation Trends",
+  " by Grouped Source"),
+   x = "Year", 
+   y = "Energy Generation (in thousands GWh)", 
+   color = "Energy Source") +
+  theme_bw() +
+  theme(legend.position="bottom")
+```
+
+From the above graph we can divide the results into several aspects to talk about the key findings:
+
+-Dominance of Non-Renewable Sources: We can see that the category "Total Non-Renewable" still remains the largest contributor to energy generation throughout the timeline. This shows our continued reliance on fossil fuels and related energy sources. However, its growth appears to slow down in recent years, and there might even be signs of a slight decline.
+
+-Renewable Energy is growing: Renewable energy has been growing steadily, especially since 2010. This suggests that renewable sources are becoming a much bigger part of the global energy mix. 
+
+-Wind and Solar Energy is Expanding Rapidly: Among renewable sources, Wind Energy and shows the fastest growth, particularly after 2010. Solar energy also has a large growth. This reflects increased adoption of solar and wind technology globally. This gives us a direction to research further on their energy advancements and cost reductions of adopting these energy sources.
+
+-Smaller, Emerging Sources: Sources like geothermal energy, liquid biofuels, and marine energy are growing slowly. They’re still minor contributors compared to solar and wind.
+
+Now that we have an overview of energy consumption by Renewable and Non-Renewable sources let's deep dive around statistics from renewable energy technologies (grouped technologies)
+
 ```{r}
 # read data
 df_statsregion <-read.csv('./raw_data/irena_electstats_region.csv')
@@ -18,7 +136,6 @@ df_statsregion <-read.csv('./raw_data/irena_electstats_region.csv')
 df_statsregion$Electricity.statistics <- as.numeric(df_statsregion$Electricity.statistics)
 ```
 
-Let's start with a quick glimpse around statistics from renewable energy technologies
 
 ```{r}
 # review global trends

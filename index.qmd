@@ -1,15 +1,15 @@
 # Introduction
-In the face of an escalating climate crisis, the need to transition from fossil fuels to renewable energy has become a critical focus worldwide as technology advances throughout the year. Governments, industries, and individuals are seeking solutions to mitigate climate change by reshaping energy generation patterns and reducing carbon emissions. As a result, understanding the progression, effectiveness, and pace of this energy transition has become more and more important. We are interested in learning how this solution was implemented over the years. In our final project, we will dive deeper to explore these dynamics.
+In the face of an escalating climate crisis, the need to transition from fossil fuels to renewable energy has become a critical focus worldwide as technology advances throughout the year. Governments, industries, and individuals are seeking solutions to mitigate climate change by reshaping energy generation patterns and reducing carbon emissions. As a result, understanding the progression, effectiveness, and pace of this energy transition has become more and more important. We are interested in learning how this solution was implemented over the years. In our final project, we will dive deeper to analyze global trends in energy generation, with a particular emphasis on the shift from fossil fuels to renewable energy sources.
 
-Our project will explore the status and pace of the global renewable energy transition. We aim to clarify our progress in reducing fossil fuel reliance and carbon emissions. By analyzing energy generation patterns, we can evaluate the effectiveness of global and regional policies in promoting renewables and curbing greenhouse gas emissions. This information can be used by policymakers to implement more effective and targeted carbon reduction policies.  Some key questions we are trying to answer are:
+Our project will explore the status and pace of the global renewable energy transition. We aim to clarify our progress in reducing fossil fuel reliance and carbon emissions. By analyzing energy generation patterns, we can evaluate the effectiveness of global and regional policies in promoting renewables and curbing greenhouse gas emissions. This information can be used by policymakers to implement more effective and targeted carbon reduction policies. Some key questions we are trying to answer are:
 
-- Are there any changes with energy generation patterns throughout the years?
+- Are there any notable changes with energy generation patterns throughout the years?
 
 - What is the main renewable energy that we are transitioning into right now?
 
 - Are there any difference in transitioning pace between different countries?
 
-- Is there any reduction in fossil fuel/carbon emissions globally or within different countries(territorial emissions)?
+- Is there any reduction in fossil consumption/carbon emissions globally or within different countries (territorial emissions)?
 
 - How does investment in renewable energy vary across regions/countries? 
 

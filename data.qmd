@@ -672,6 +672,8 @@ df_finance <- read_csv(
 attr(df_finance, 'spec') <- NULL
 ```
 
+For finance data we don't have a special string to inform about missing data. In this case, the lowest value is zero.
+
 Let's analyze whether this dataset has missing values or not.
 
 ```{r}

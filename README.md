@@ -1,7 +1,3 @@
-# Renewable Energy
-
-
-
 # Global Renewable Energy Transition Analysis
 
 ## Description
