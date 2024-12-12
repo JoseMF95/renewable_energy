@@ -88,6 +88,7 @@ Electricity is an important factor contributing to climate change. The tradition
 ### By Renewable and Non-Renewable Energy Sources
 
 First, we consider a general category of renewable and non-renewable energy sources for energy generation technology.
+
 ```{r}
 # read data
 df_statsregion <-read.csv('./raw_data/irena_electstats_region.csv')
@@ -246,6 +247,7 @@ After preprocessing the data, we can generate the line graph to see the total en
 
 ```{r}
 #| fig-height: 8
+#| fig-width: 13
 ggplot(generation_trends, aes(x = Year,
            y = Total_Generation, 
            col = Technology)
@@ -267,7 +269,7 @@ From this graph, we can tell that fossil fuel electricity generation continue to
 To resolve this, we group similar energy categories together and generate a new column for these generalized groups to make the above line graph clearer. We get the resulting graph:
 
 ```{r}
-#| fig-height: 5.5
+#| fig-width: 9
 gp_generation_trends <- df_country |> 
   filter(Data.Type == "Electricity Generation (GWh)",
          Grid.connection == "All",
@@ -330,13 +332,13 @@ ggplot(gp_generation_trends, aes(x = Year, y = Total_Generation, color = Grouped
 
 From the above graph we can divide the results into several aspects to talk about the key findings:
 
--Dominance of Non-Renewable Sources: We can see that the category "Total Non-Renewable" still remains the largest contributor to energy generation throughout the timeline. This shows our continued reliance on fossil fuels and related energy sources. However, its growth appears to slow down in recent years, and there might even be signs of a slight decline.
+- Dominance of Non-Renewable Sources: We can see that the category "Total Non-Renewable" still remains the largest contributor to energy generation throughout the timeline. This shows our continued reliance on fossil fuels and related energy sources. However, its growth appears to slow down in recent years, and there might even be signs of a slight decline.
 
--Renewable Energy is growing: Renewable energy has been growing steadily, especially since 2010. This suggests that renewable sources are becoming a much bigger part of the global energy mix.
+- Renewable Energy is growing: Renewable energy has been growing steadily, especially since 2010. This suggests that renewable sources are becoming a much bigger part of the global energy mix.
 
--Wind and Solar Energy is Expanding Rapidly: Among renewable sources, Wind Energy and shows the fastest growth, particularly after 2010. Solar energy also has a large growth. This reflects increased adoption of solar and wind technology globally. This gives us a direction to research further on their energy advancements and cost reductions of adopting these energy sources.
+- Wind and Solar Energy is Expanding Rapidly: Among renewable sources, Wind Energy and shows the fastest growth, particularly after 2010. Solar energy also has a large growth. This reflects increased adoption of solar and wind technology globally. This gives us a direction to research further on their energy advancements and cost reductions of adopting these energy sources.
 
--Smaller, Emerging Sources: Sources like geothermal energy, liquid biofuels, and marine energy are growing slowly. They’re still minor contributors compared to solar and wind.
+- Smaller, Emerging Sources: Sources like geothermal energy, liquid biofuels, and marine energy are growing slowly. They’re still minor contributors compared to solar and wind.
 
 # Proportional Graph for Energy Generation
 
@@ -369,7 +371,7 @@ In general, when observing electricity generation patterns, we can see that ener
 Now that we have an overview of energy consumption by Renewable and Non-Renewable sources, let's deep dive into renewable energy generation capacity. Energy generation capacity reveals the potential of deploying the particular energy as a replacement for non-renewable energy sources.
 
 ```{r}
-#| fig-width: 10
+#| fig-width: 8
 # review global trends
 df_world <- df_statsregion |> 
   filter(Region=='World')
@@ -413,11 +415,13 @@ df_world |>
       "per Renewable Energy")
     ) +
   theme_grey(13) +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
 ```
+
 Since 2000 Hydropower has been the primary renewable energy technology in the world. Nonetheless, we observe that Wind and Solar energy are gaining relevance since they contribute more and more to the share of Electricity Generation and Installed Capacity.
 
 We can further our analysis by assessing regional patterns. The following graph presents the latest trends in renewable source technologies given the data in 2022.
+
 ```{r}
 df_region <- df_statsregion |> 
   filter(Region!='World')
@@ -459,6 +463,7 @@ df_region|>
   theme_bw() +
   theme(legend.position="bottom") 
 ```
+
 Most regions have Hydropower as the technology with most electricity installed capacity. This pattern is different for Asia and Europe where Solar energy is the predominant one. For most regions all renewable energy technologies are close in terms of installed capacity, except for Asia, Europe and North America where Hydropower, Solar and Wind deviate significantly from others.
 
 This is consistent with our previous analysis on electricity generation. We mentioned that Solar, Wind and Hydropower adoption increased the most, the high installed capacity of each technology might explain this increase.
@@ -501,6 +506,7 @@ draw_biplot(df_region_5y,arrows = TRUE) +
     " per Region")
   )
 ```
+
 We observe that despite Asia, Europe and North America present high values for Solar and Wind technologies when we change to percentage increase South America takes the lead (\>800% Solar and \>100% Wind increase respectively), followed by Middle East (\>500% Solar and \>200% Wind increase respectively). Africa increased by 17% its Hydropower's electricity installed capacity. For Geothermal, South America takes the lead with a \>100% increase in electricity installed capacity from 2017 to 2022.
 
 The biplot graph shows that big magnitudes potentially overshadow interesting trends against other categories with relatively smaller amounts. The multivariate setting of biplot visualization allows us to plot percentage changes and create indexes.
@@ -512,10 +518,13 @@ In general, we find that energy generation capacity matches our expectation in e
 We can continue by investigating the relationship between public investment on energy energy generation and carbon emissions.
 
 Let's upload our public investment data first
+
 ```{r}
 df_finance <- read_csv("./raw_data/irena_finance.csv")
 ```
+
 ## Public Investment in Energy Technology by Region
+
 ```{r}
 investmentovertime <- df_finance |> 
   filter(Year >= 1990) |> 
@@ -562,6 +571,7 @@ From the graph, we see that there is a lot of public investment in energy techno
 Although we are able to look at a number of different relationships with this graph, we are unable to look closer to find exact numbers because of how many graphs there are. In addition, we had to filter out some energy technology because the data we have is very specific and some energy technology are very niche that there aren't a lot of data and investment on them.
 
 Now, we can get the total public investment in renewable energy for each of these countries from the df_finance dataset.
+
 ```{r}
 toppublicfinance <- df_finance |> 
   filter(Year == 2021) |> 
@@ -582,6 +592,7 @@ merged_data <- investmentandemissions |>
 ## Public Investment in Energy Technology vs. Carbon Emission
 
 Now we want to see if these public investment has a relationship with carbon emission.
+
 ```{r}
 merged_data |> 
   filter(CarbonEmission < 700) |> 
@@ -632,6 +643,7 @@ mergeddatafortree <- bind_rows(mergeddatafortree,add)
 ```
 
 We now use our dataframe to plot a treemap that can visualize any changes of public investment in 1990 vs. 2021 as well as if there's any reduction of carbon emission per country.
+
 ```{r}
 ggplot(mergeddatafortree, aes(area = CarbonEmission, fill = Total_Public_Investment, label = Country)) +
   geom_treemap() +
@@ -642,6 +654,7 @@ ggplot(mergeddatafortree, aes(area = CarbonEmission, fill = Total_Public_Investm
        fill = "Investment (Million USD)") +
   theme_grey(13)
 ```
+
 The graph gives us a very clear visual of China continuing to dominate in CO2 emissions in 1990 and 2021. The proportion increased even more in 2021 than in 1990. An interesting thing we can see from the graph is how Germany fell off in 2021 as one of the top emitter in 1990. This suggests that there might be a connection between carbon emissions and the world war since there aren't that many public investment being made in the energy technology sector as shown by the graph. We can also see that India has become even larger emitter comparing to 1990. Also, something notable is that Brazil has always been a top public investor in energy technology, however, it is also consistently one of the bigger emitters in carbon. This might suggest that there aren't any relationship between public investment and carbon emission of a country.
 
 Finally, comparing to our findings before, the graph also show that larger emitters don't really allocate a lot of public funds to energy technology. However, it is consistent with our line graphs that Brazil, being a country in South America, contributed to public investment towards energy technology by a lot.
